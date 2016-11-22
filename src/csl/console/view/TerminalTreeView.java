@@ -251,12 +251,6 @@ public class TerminalTreeView {
 
     /////////////////////////////////
 
-
-    /*
-    public void write(Terminal terminal) {
-        terminal.writer().write(write().getAppendable().toAnsi(terminal));
-    }*/
-
     public TerminalLineColumnsWriting write(Terminal terminal) {
         TerminalLineColumnsWriting writing = makeWriting(terminal);
         displayItems.forEach(item ->

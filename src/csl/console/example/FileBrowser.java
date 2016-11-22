@@ -22,7 +22,11 @@ public class FileBrowser {
         app = mode.makeApp();
         app.initTerminal();
 
-        mode.run(app, new FileNode(dir));
+        try {
+            mode.run(app, new FileNode(dir));
+        } finally {
+            app.exitTerminal();
+        }
     }
 
     public static class FileNode extends TerminalItemNode {

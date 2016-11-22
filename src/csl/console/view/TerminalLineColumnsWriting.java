@@ -80,10 +80,10 @@ public class TerminalLineColumnsWriting {
     public void nextLine(boolean newLine) {
         lineY++;
         lineX = 0;
-        nextColumn(0);
 
         terminal.writer().write(appendable.toAnsi(terminal));
         initAppendable();
+        nextColumn(0);
 
         if (newLine) {
             //appendable.append('\n');

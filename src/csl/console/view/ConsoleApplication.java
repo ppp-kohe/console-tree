@@ -23,14 +23,7 @@ public class ConsoleApplication {
         try {
             terminal = TerminalBuilder.terminal();
             //terminal.echo(false);
-            Attributes attributes = terminal.getAttributes();
-            Attributes newAttr = new Attributes(attributes);
-            newAttr.setLocalFlags(EnumSet.of(Attributes.LocalFlag.ICANON, Attributes.LocalFlag.ECHO, Attributes.LocalFlag.IEXTEN), false);
-            newAttr.setInputFlags(EnumSet.of(Attributes.InputFlag.IXON, Attributes.InputFlag.ICRNL, Attributes.InputFlag.INLCR), false);
-            newAttr.setControlChar(Attributes.ControlChar.VMIN, 1);
-            newAttr.setControlChar(Attributes.ControlChar.VTIME, 0);
-            newAttr.setControlChar(Attributes.ControlChar.VINTR, 0);
-            terminal.setAttributes(newAttr);
+            terminal.enterRawMode();
 
             terminal.puts(InfoCmp.Capability.enter_ca_mode);
             terminal.puts(InfoCmp.Capability.keypad_xmit);
@@ -45,6 +38,12 @@ public class ConsoleApplication {
         } catch (IOException ioe) {
             error(ioe);
         }
+    }
+
+    public void exitTerminal() {
+        terminal.puts(InfoCmp.Capability.exit_ca_mode);
+        terminal.puts(InfoCmp.Capability.keypad_local);
+        terminal.flush();
     }
 
     public void setCurrentMode(ConsoleMode currentMode) {
