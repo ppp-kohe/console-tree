@@ -1,0 +1,11 @@
+<ivy-module version="2.0">
+    <info organisation="csl" module="console-tree"/>
+
+    <configurations>
+        <conf name="dist" />
+        <conf name="test" extends="dist" />
+    </configurations>
+    <dependencies>
+        <dependency org="org.jline" name="jline" rev="3.0.1" conf="dist->default"/>
+    </dependencies>
+</ivy-module>

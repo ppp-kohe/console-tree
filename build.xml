@@ -1,0 +1,66 @@
+<project name="console-tree"
+         xmlns:ivy="antlib:org.apache.ivy.ant"
+         default="dist">
+    <property name="opt.distdir" location="."/>
+
+    <path id="jars">
+        <fileset dir="lib/">
+            <include name="**/jline-*.jar"/>
+        </fileset>
+    </path>
+
+    <path id="testjars">
+        <fileset dir="lib/test">
+            <include name="**/junit*.jar"/>
+        </fileset>
+    </path>
+
+    <target name="getlib">
+        <ivy:retrieve pattern="lib/[artifact]-[revision].[ext]" conf="dist"/>
+    </target>
+
+    <target name="build">
+        <mkdir dir="bin"/>
+        <javac destdir="bin" encoding="UTF-8" debug="true" source="1.8" target="1.8">
+            <classpath refid="jars"/>
+
+            <src location="src"/>
+        </javac>
+
+        <copy todir="bin">
+            <fileset dir="src">
+                <exclude name="**/*.java"/>
+                <exclude name="**/.*"/>
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="dist" depends="build">
+        <mkdir dir="${opt.distdir}"/>
+        <mkdir dir="${opt.distdir}/temp"/>
+
+        <unjar dest="${opt.distdir}/temp" overwrite="true">
+            <path refid="jars"/>
+        </unjar>
+
+        <copy todir="${opt.distdir}/temp" overwrite="true">
+            <fileset dir="bin"/>
+        </copy>
+
+
+        <jar destfile="${opt.distdir}/console-tree.jar"
+             basedir="${opt.distdir}/temp">
+            <manifest>
+                <attribute name="Main-Class" value="csl.tgls.spin.view.Main"/>
+            </manifest>
+        </jar>
+
+        <delete dir="${opt.distdir}/temp"/>
+    </target>
+
+    <target name="clean">
+        <delete dir="bin"/>
+    </target>
+
+
+</project>
