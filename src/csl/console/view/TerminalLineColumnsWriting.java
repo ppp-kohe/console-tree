@@ -7,7 +7,9 @@ import org.jline.utils.AttributedStyle;
 import org.jline.utils.InfoCmp;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * <ul>
@@ -41,7 +43,7 @@ import java.util.Arrays;
  * </pre>
  */
 public class TerminalLineColumnsWriting {
-    protected Terminal terminal;
+    protected List<AttributedString> lines;
     protected AttributedStringBuilder appendable;
 
     protected int width;
@@ -56,12 +58,24 @@ public class TerminalLineColumnsWriting {
 
     protected int lineCursorX;
 
-
-    public TerminalLineColumnsWriting(Terminal terminal, int width) {
-        this.terminal = terminal;
+    public TerminalLineColumnsWriting(int width, int height) {
+        this(new ArrayList<>(height), width);
+    }
+    public TerminalLineColumnsWriting(List<AttributedString> lines, int width) {
+        this.lines = lines;
         this.width = width;
+        reset(width);
+    }
+
+    public void reset(int width) {
+        this.width = width;
+        lines.clear();
         initAppendable();
         nextColumn(0);
+    }
+
+    public List<AttributedString> getLines() {
+        return lines;
     }
 
     protected void initAppendable() {
@@ -81,14 +95,9 @@ public class TerminalLineColumnsWriting {
         lineY++;
         lineX = 0;
 
-        terminal.writer().write(appendable.toAnsi(terminal));
+        lines.add(appendable.toAttributedString());
         initAppendable();
         nextColumn(0);
-
-        if (newLine) {
-            //appendable.append('\n');
-            terminal.puts(InfoCmp.Capability.carriage_return);
-        }
     }
 
     /**

@@ -251,15 +251,15 @@ public class TerminalTreeView {
 
     /////////////////////////////////
 
-    public TerminalLineColumnsWriting write(Terminal terminal) {
-        TerminalLineColumnsWriting writing = makeWriting(terminal);
+    public TerminalLineColumnsWriting write() {
+        TerminalLineColumnsWriting writing = makeWriting();
         displayItems.forEach(item ->
                 writeLine(writing, writing.getLineY() == cursorLine, item));
         return writing;
     }
 
-    protected TerminalLineColumnsWriting makeWriting(Terminal terminal) {
-        return new TerminalLineColumnsWriting(terminal, width);
+    protected TerminalLineColumnsWriting makeWriting() {
+        return new TerminalLineColumnsWriting(width, height);
     }
 
     public void writeLine(TerminalLineColumnsWriting writing, boolean cursorLine, DisplayItem item) {

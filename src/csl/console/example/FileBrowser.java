@@ -20,13 +20,7 @@ public class FileBrowser {
     public void run(File dir) {
         ConsoleModeTree mode = new ConsoleModeTree(new TerminalTreeBase());
         app = mode.makeApp();
-        app.initTerminal();
-
-        try {
-            mode.run(app, new FileNode(dir));
-        } finally {
-            app.exitTerminal();
-        }
+        mode.run(app, new FileNode(dir));
     }
 
     public static class FileNode extends TerminalItemNode {

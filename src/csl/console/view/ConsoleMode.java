@@ -1,6 +1,7 @@
 package csl.console.view;
 
 import org.jline.keymap.KeyMap;
+import org.jline.terminal.Size;
 
 public class ConsoleMode {
     protected KeyMap<ConsoleCommand> commands;
@@ -10,7 +11,9 @@ public class ConsoleMode {
     }
 
     protected KeyMap<ConsoleCommand> initCommands(ConsoleApplication app) {
-        return new KeyMap<>();
+        KeyMap<ConsoleCommand> map = new KeyMap<>();
+        map.bind(ConsoleApplication::end, "q");
+        return map;
     }
 
     public void runLoop(ConsoleApplication app) {
@@ -29,16 +32,16 @@ public class ConsoleMode {
     }
 
     public void display(ConsoleApplication app) {
-        displayWithoutFlush(app);
         app.getTerminal().flush();
-    }
-
-    /** a subclass needs to override the method */
-    public void displayWithoutFlush(ConsoleApplication app) {
     }
 
 
     public void runRootCommand(ConsoleApplication app) {
-        //TODO
+        ConsoleCommand cmd = app.getReader().readBinding(commands);
+        cmd.run(app);
+    }
+
+    public void sizeUpdated(Size size) {
+
     }
 }

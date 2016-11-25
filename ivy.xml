@@ -6,6 +6,6 @@
         <conf name="test" extends="dist" />
     </configurations>
     <dependencies>
-        <dependency org="org.jline" name="jline" rev="3.0.1" conf="dist->default"/>
+        <dependency org="org.jline" name="jline" rev="3.1.0" conf="dist->default"/>
     </dependencies>
 </ivy-module>

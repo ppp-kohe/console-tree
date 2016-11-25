@@ -1,7 +1,11 @@
 package csl.console.view;
 
+import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
+import org.jline.utils.Display;
 import org.jline.utils.InfoCmp;
+
+import java.util.ArrayList;
 
 public class ConsoleModeTree extends ConsoleMode {
     protected TerminalTreeView treeView;
@@ -15,28 +19,39 @@ public class ConsoleModeTree extends ConsoleMode {
         return new ConsoleApplication(this);
     }
 
+    public void run(ConsoleApplication app, TerminalItem origin) {
+        app.initTerminal();
+        treeView.setOrigin(origin);
+        treeView.build();
+        try {
+            app.runLoop();
+        } finally {
+            app.exitTerminal();
+        }
+    }
+
     @Override
     public void init(ConsoleApplication app) {
         super.init(app);
         treeView = new TerminalTreeView(null, tree);
-        treeView.setWidth(app.getTerminal().getWidth());
-        treeView.setWidth(app.getTerminal().getHeight());
+        sizeUpdated(app.getSize());
         //TODO search
 
         //TODO help
     }
 
-    public void run(ConsoleApplication app, TerminalItem origin) {
-        treeView.setOrigin(origin);
-        treeView.build();
-        app.runLoop();
+    @Override
+    public void display(ConsoleApplication app) {
+        Display d = app.getDisplay();
+        d.resize(treeView.getHeight(), treeView.getWidth());
+        int pos = app.getSize().cursorPos(treeView.getCursorLine(), 0);
+        d.update(treeView.write().getLines(), pos);
+        app.getTerminal().flush();
     }
 
     @Override
-    public void displayWithoutFlush(ConsoleApplication app) {
-        Terminal terminal = app.getTerminal();
-
-        //terminal.puts(InfoCmp.Capability.clear_screen);
-        treeView.write(terminal);
+    public void sizeUpdated(Size size) {
+        treeView.setWidth(size.getColumns());
+        treeView.setHeight(size.getRows());
     }
 }
