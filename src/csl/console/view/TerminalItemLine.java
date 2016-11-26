@@ -21,6 +21,13 @@ public class TerminalItemLine implements TerminalItem {
         this.parent = parent;
     }
 
+    /** returns this */
+    public TerminalItemLine withParent(TerminalItemLine parent) {
+        this.parent = parent;
+        this.depth = parent.getDepth() + 1;
+        return this;
+    }
+
     public int getDepth() {
         return depth;
     }

@@ -13,8 +13,8 @@ public class TerminalTreeView {
     protected List<DisplayItem> displayItems;
     protected int displayMaxWidth;
 
-    protected int width = 100;
-    protected int height = 30;
+    protected volatile int width = 100;
+    protected volatile int height = 30;
 
     protected int offsetX;
     protected int offsetY;
@@ -99,7 +99,7 @@ public class TerminalTreeView {
         }
     }
     protected boolean buildLineChildren(BuildIndex idx, TerminalItem item) {
-        TerminalItem child = tree.getFirstChild(item);
+        TerminalItem child = tree.isOpen(item) ? tree.getFirstChild(item) : null;
         boolean result = true;
         while (child != null) {
             if (!buildLine(idx, child)) {
@@ -411,4 +411,79 @@ public class TerminalTreeView {
         addNextLinesToHeight();
         updateOrigin();
     }
+
+    ////////////////////////
+
+
+    public void openOrCloseOnCursor() {
+        TerminalItem item = getItemOnCursor();
+        if (item != null) {
+            openOnCursor(!tree.isOpen(item));
+        }
+    }
+
+    public void scrollDownPage() {
+        for (int i = 0, l = getHeight() / 2; i < l; ++i) {
+            if (!scrollToNextLine()) {
+                break;
+            }
+        }
+    }
+
+    public void scrollUpPage() {
+        for (int i = 0, l = getHeight() / 2; i < l; ++i) {
+            if (!scrollToPreviousLine()) {
+                break;
+            }
+        }
+    }
+
+    public void moveToParent() {
+        TerminalItem item = getItemOnCursor();
+        if (item != null) {
+            moveCursorTo(tree.getParent(item));
+        }
+    }
+
+    public void moveToFirstChild() {
+        TerminalItem item = getItemOnCursor();
+        if (item != null) {
+            if (!tree.isOpen(item)) {
+                item = open(item, true);
+            }
+            TerminalItem first = tree.getFirstChild(item);
+            if (first != null) {
+                moveCursorTo(first);
+            }
+        }
+    }
+
+    public void moveToLastChild() {
+        TerminalItem item = getItemOnCursor();
+        if (item != null) {
+            if (!tree.isOpen(item)) {
+                item = open(item, true);
+            }
+            TerminalItem last = tree.getLastChild(item);
+            if (last != null) {
+                moveCursorTo(last);
+            }
+        }
+    }
+
+    public void moveToPreviousSibling() {
+        TerminalItem item = getItemOnCursor();
+        if (item != null) {
+            moveCursorTo(tree.getUpperPrevious(item));
+        }
+    }
+
+    public void moveToNextSibling() {
+        TerminalItem item = getItemOnCursor();
+        if (item != null) {
+            moveCursorTo(tree.getUpperNext(item));
+        }
+    }
+
+
 }

@@ -13,6 +13,7 @@ public interface TerminalTree {
     boolean isOpen(TerminalItem item);
 
     TerminalItem getParent(TerminalItem item);
+    /** optional */
     List<TerminalItem> getChildren(TerminalItem item);
 
     TerminalItem getFirstChild(TerminalItem item);

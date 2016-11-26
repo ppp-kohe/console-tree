@@ -1,15 +1,17 @@
 package csl.console.view;
 
 import org.jline.keymap.BindingReader;
+import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.utils.AttributedString;
 import org.jline.utils.Display;
 import org.jline.utils.InfoCmp;
 
 import java.io.IOException;
-import java.util.EnumSet;
+import java.util.List;
 
 /**
  * <pre>
@@ -27,7 +29,9 @@ public class ConsoleApplication {
     protected ConsoleMode defaultMode;
     protected ConsoleMode currentMode;
     protected Attributes prevAttributes;
-    protected Size size;
+    protected Terminal.SignalHandler prevHandler;
+    protected volatile Size size;
+    protected boolean sizeChanged;
 
     protected Display display;
 
@@ -37,12 +41,14 @@ public class ConsoleApplication {
 
     public void initTerminal() {
         try {
-            terminal = TerminalBuilder.terminal();
+            terminal = TerminalBuilder.builder()
+                    .nativeSignals(true)
+                    .build();
             prevAttributes = terminal.enterRawMode();
 
             terminal.puts(InfoCmp.Capability.enter_ca_mode);
             terminal.puts(InfoCmp.Capability.keypad_xmit);
-            terminal.handle(Terminal.Signal.WINCH, this::handle);
+            prevHandler = terminal.handle(Terminal.Signal.WINCH, this::handle);
 
             reader = new BindingReader(terminal.reader());
 
@@ -66,6 +72,7 @@ public class ConsoleApplication {
             terminal.puts(InfoCmp.Capability.keypad_local);
             terminal.flush();
             terminal.setAttributes(prevAttributes);
+            terminal.handle(Terminal.Signal.WINCH, prevHandler);
             terminal.close();
         } catch (IOException ioe) {
             error(ioe);
@@ -97,9 +104,10 @@ public class ConsoleApplication {
     }
 
     /** automatically called when WINCH (window size change) */
-    public void handle(Terminal.Signal signal) {
+    public synchronized void handle(Terminal.Signal signal) {
         if (signal.equals(Terminal.Signal.WINCH)) {
             size = terminal.getSize();
+            sizeChanged = true;
             currentMode.sizeUpdated(size);
         }
     }
@@ -120,6 +128,33 @@ public class ConsoleApplication {
 
     public void end() {
         setCurrentMode(null);
+    }
+
+    public void display(List<AttributedString> lines, int cursorRow, int cursorColumn) {
+        if (sizeChanged) {
+            sizeChanged = false;
+            display.clear();
+        }
+        int r = size.getRows();
+        int c = size.getColumns();
+        display.resize(r, c);
+        display.update(lines, size.cursorPos(cursorRow, cursorColumn));
+        terminal.flush();
+    }
+
+    ////////////////////////
+
+    public String getKeyDown() {
+        return KeyMap.key(terminal, InfoCmp.Capability.key_down);
+    }
+    public String getKeyUp() {
+        return KeyMap.key(terminal, InfoCmp.Capability.key_up);
+    }
+    public String getKeyLeft() {
+        return KeyMap.key(terminal, InfoCmp.Capability.key_left);
+    }
+    public String getKeyRight() {
+        return KeyMap.key(terminal, InfoCmp.Capability.key_right);
     }
 
 }

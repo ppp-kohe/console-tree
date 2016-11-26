@@ -15,12 +15,12 @@ public class FileBrowser {
         new FileBrowser().run(new File("."));
     }
 
-    ConsoleApplication app;
-
     public void run(File dir) {
-        ConsoleModeTree mode = new ConsoleModeTree(new TerminalTreeBase());
-        app = mode.makeApp();
-        mode.run(app, new FileNode(dir));
+        TerminalTreeBase base = new TerminalTreeBase();
+        FileNode root = new FileNode(dir);
+        base.open(root);
+
+        new ConsoleModeTree(base).run(root);
     }
 
     public static class FileNode extends TerminalItemNode {
@@ -39,9 +39,9 @@ public class FileBrowser {
         public List<TerminalItem> getChildren() {
             if (children == null) {
                 if (file.isDirectory()) {
-                    children = Arrays.stream(file.listFiles())
+                    Arrays.stream(file.listFiles())
                             .map(FileNode::new)
-                            .collect(Collectors.toList());;
+                            .forEach(this::addChild);
                 } else {
                     children = Collections.emptyList();
                 }

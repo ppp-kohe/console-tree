@@ -2,6 +2,7 @@ package csl.console.view;
 
 import org.jline.utils.AttributedString;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class TerminalItemNode extends TerminalItemLine {
@@ -22,19 +23,24 @@ public class TerminalItemNode extends TerminalItemLine {
         return children;
     }
 
-    public void addChild(TerminalItem item) {
+    /** returns item */
+    public TerminalItem addChild(TerminalItem item) {
         if (item instanceof TerminalItemLine) {
             TerminalItemLine line = (TerminalItemLine) item;
-            line.setParent(this);
-            line.setDepth(getDepth() + 1);
+            line.withParent(this);
+        }
+        if (children == null) {
+            children = new ArrayList<>();
         }
         children.add(item);
+        return item;
     }
 
-    public void addChildren(List<? extends TerminalItem> items) {
+    public List<? extends TerminalItem> addChildren(List<? extends TerminalItem> items) {
         for (TerminalItem i : items) {
             addChild(i);
         }
+        return items;
     }
 
 }

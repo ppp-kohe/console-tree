@@ -7,8 +7,29 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * A tree model with supporting {@link TerminalItemLine} and {@link TerminalItemNode}.
+ * <p>
+ *  There are following options for achieving tree walking
+ *  <ol>
+ *     <li>overrides {@link TerminalItemNode#getChildren()}</li>
+ *
+ *     <li>overrides {@link #getParent(TerminalItem)} and {@link #getChildren(TerminalItem)}.
+ *             This can support item classes other than {@link TerminalItemLine} and {@link TerminalItemNode}. </li>
+ *
+ *     <li>overrides {@link #getParent(TerminalItem)},
+ *              {@link #getFirstChild(TerminalItem)}, {@link #getLastChild(TerminalItem)},
+ *              {@link #getNextSibling(TerminalItem)} and {@link #getPrevious(TerminalItem)}.
+ *              This can avoid supplying a fixed List object as children,
+ *                 which needs to eagerly access children of a node. </li>
+ *  </ol>
+ */
 public class TerminalTreeBase implements TerminalTree {
-    protected Set<TerminalItem> openItems = new HashSet<>();
+    protected Set<TerminalItem> openItems = initItems();
+
+    protected Set<TerminalItem> initItems() {
+        return new HashSet<>();
+    }
 
     @Override
     public List<AttributedString> getTokens(TerminalItem item) {
@@ -131,7 +152,7 @@ public class TerminalTreeBase implements TerminalTree {
 
     @Override
     public TerminalItem getNext(TerminalItem item) {
-        TerminalItem child = getFirstChild(item);
+        TerminalItem child = isOpen(item) ? getFirstChild(item) : null;
         if (child != null) {
             return child;
         } else {
@@ -175,7 +196,7 @@ public class TerminalTreeBase implements TerminalTree {
     }
 
     public TerminalItem getLast(TerminalItem item) {
-        TerminalItem c = getLastChild(item);
+        TerminalItem c = isOpen(item) ? getLastChild(item) : null;
         if (c == null) {
             return item;
         } else {
