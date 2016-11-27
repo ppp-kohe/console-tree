@@ -1,11 +1,9 @@
 package csl.console.view;
 
 import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A tree model with supporting {@link TerminalItemLine} and {@link TerminalItemNode}.
@@ -26,17 +24,76 @@ import java.util.Set;
  */
 public class TerminalTreeBase implements TerminalTree {
     protected Set<TerminalItem> openItems = initItems();
+    protected boolean indent = true;
 
     protected Set<TerminalItem> initItems() {
         return new HashSet<>();
     }
 
+    public TerminalTreeBase withIndent(boolean indent) {
+        this.indent = indent;
+        return this;
+    }
+    /** default is true */
+    public boolean isIndent() {
+        return indent;
+    }
+
     @Override
     public List<AttributedString> getTokens(TerminalItem item) {
+        List<AttributedString> attrs = getTokensWithoutIndents(item);
+        if (indent) {
+            List<AttributedString> attrsWithIndent = new ArrayList<>(attrs.size() + 1);
+            attrsWithIndent.add(getIndent(item));
+            attrsWithIndent.addAll(attrs);
+            return attrsWithIndent;
+        } else {
+            return attrs;
+        }
+    }
+
+    public List<AttributedString> getTokensWithoutIndents(TerminalItem item) {
         if (item == null) {
             return Collections.emptyList();
+        } else if (item instanceof TerminalItemLine) {
+            List<AttributedString> list = ((TerminalItemLine) item).getTokens();
+            if (list == null) {
+                return Collections.emptyList();
+            } else {
+                return list;
+            }
+        } else {
+            return Collections.singletonList(new AttributedString(item.toString()));
         }
-        return Collections.singletonList(new AttributedString(item.toString()));
+    }
+
+    public AttributedString getIndent(TerminalItem item) {
+        AttributedStringBuilder buf = new AttributedStringBuilder();
+        int n = getDepth(item);
+        AttributedString indentUnit = getIndentUnit();
+        for (int i = 0; i < n; ++i) {
+            buf.append(indentUnit);
+        }
+        return buf.toAttributedString();
+    }
+
+    public AttributedString getIndentUnit() {
+        return new AttributedString(" ");
+    }
+
+    public int getDepth(TerminalItem item) {
+        if (item == null) {
+            return 0;
+        } else if (item instanceof TerminalItemLine) {
+            return ((TerminalItemLine) item).getDepth();
+        } else {
+            int dep = -1;
+            while (item != null) {
+                item = getParent(item);
+                ++dep;
+            }
+            return dep;
+        }
     }
 
     @Override

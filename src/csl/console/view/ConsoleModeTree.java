@@ -73,6 +73,8 @@ public class ConsoleModeTree extends ConsoleMode {
         keys.bind(a -> treeView.moveToPreviousSibling(), "r");
         keys.bind(a -> treeView.moveToNextSibling(), "x");
 
+        keys.bind(a -> treeView.debugLog(), "\\");
+
         //TODO search: forward /, backward ?, next n, prev N
         //TODO help h
 

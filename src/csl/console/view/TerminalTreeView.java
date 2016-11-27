@@ -1,6 +1,5 @@
 package csl.console.view;
 
-import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
 
 import java.util.ArrayList;
@@ -15,6 +14,7 @@ public class TerminalTreeView {
 
     protected volatile int width = 100;
     protected volatile int height = 30;
+    protected volatile boolean needToReBuild = true;
 
     protected int offsetX;
     protected int offsetY;
@@ -55,7 +55,10 @@ public class TerminalTreeView {
         return height;
     }
     public void setHeight(int height) {
-        this.height = height;
+        if (this.height != height) {
+            this.height = height;
+            needToReBuild = true;
+        }
     }
     public int getOffsetX() {
         return offsetX;
@@ -69,7 +72,9 @@ public class TerminalTreeView {
     public void setOffsetY(int offsetY) {
         this.offsetY = offsetY;
     }
+    /** may re-build and justify the cursor */
     public int getCursorLine() {
+        getDisplayItemsWithBuild();
         return cursorLine;
     }
     public void setCursorLine(int cursorLine) {
@@ -78,16 +83,56 @@ public class TerminalTreeView {
 
     /////////////////////////////////
 
+    public List<DisplayItem> getDisplayItemsWithBuild() {
+        if (needToReBuild) {
+            build();
+        }
+        return displayItems;
+    }
+
     public void build() {
         displayItems.clear();
         buildLine(new BuildIndex(0, 0), origin);
         addNextLinesToHeight();
         updateOrigin();
         updateDisplayTokens();
+        updateCursorLine();
+        needToReBuild = false;
     }
 
+    /**
+     * <pre>
+     *        idx.dI: existingItem1
+     *           +1 : existingItem2
+     *       =&gt;
+     *        idx.dI: item
+     *           +1 : existingItem1
+     *           +2 : existingItem2
+     *
+     *       =&gt;  //call {@link #buildLineChildren(BuildIndex, TerminalItem)}
+     *        idx.dI: item
+     *           +1 :    getFirstChild(item)
+     *           +2 : existingItem1
+     *           +3 : existingItem2
+     *       =&gt;
+     *        idx.dI: item
+     *           +1 :    getFirstChild(item)
+     *           +2 :       getFirstChild(getFirstChild(item)) //recursive call
+     *           +3 : existingItem1
+     *           +4 : existingItem2
+     *       =&gt;
+     *        idx.dI: item
+     *           +1 :    getFirstChild(item)
+     *           +2 :       getFirstChild(getFirstChild(item))
+     *           +3 :    getNextSibling(getFirstChild(item))
+     *           +4 : existingItem1
+     *           +5 : existingItem2
+     * </pre>
+     */
     public boolean buildLine(BuildIndex idx, TerminalItem item) {
-        if (idx.y < getDisplayMaxLine()) {
+        if (item == null) {
+            return false;
+        } else if (idx.y < getDisplayMaxLine()) {
             if (idx.y >= getDisplayMinLine()) {
                 displayItems.add(idx.displayIndex, makeDisplayItem(item));
                 ++idx.displayIndex;
@@ -111,6 +156,24 @@ public class TerminalTreeView {
         return result;
     }
 
+    /**
+     * <pre>
+     *          0: firstItem
+     *             ...
+     *       last: lastItem
+     *     last+1:  *empty*
+     *             ...
+     *     height:  *empty*
+     *
+     *    =&gt;  //call {@link #addNextLine()}s
+     *          0: firstItem
+     *             ...
+     *       last: lastItem
+     *     last+1: getNext(lastItem)
+     *             ...
+     *     height: getNext(...)
+     * </pre>
+     */
     protected void addNextLinesToHeight() {
         while (displayItems.size() < height) {
             if (!addNextLine()) {
@@ -142,7 +205,7 @@ public class TerminalTreeView {
     }
 
     protected int getDisplayItemWidth(DisplayItem item) {
-        return getLineHeadWidth() + item.getMaxWidth();
+        return getLineHeadWidth() + item.getMaxWidth(tree);
     }
 
     protected int getLineHeadWidth() {
@@ -154,6 +217,14 @@ public class TerminalTreeView {
             origin = displayItems.get(0).getItem();
         }
         offsetY = 0;
+    }
+
+    protected void updateCursorLine() {
+        if (cursorLine >= height) {
+            cursorLine = height - 1;
+        } else if (cursorLine < 0) {
+            cursorLine = 0;
+        }
     }
 
     /////////////////////////////////
@@ -174,6 +245,8 @@ public class TerminalTreeView {
 
     public static class DisplayItem {
         protected TerminalItem item;
+        protected List<AttributedString> tokens;
+        protected int maxWidth = -1;
 
         public DisplayItem(TerminalItem item) {
             this.item = item;
@@ -183,16 +256,35 @@ public class TerminalTreeView {
             return item;
         }
 
-        public int getMaxWidth() {
-            return 0; //TODO
+        public List<AttributedString> getTokens(TerminalTree tree) {
+            if (tokens == null) {
+                tokens = tree.getTokens(item);
+            }
+            return tokens;
+        }
+
+        public int getMaxWidth(TerminalTree tree) {
+            if (maxWidth < 0) {
+                maxWidth = getTokens(tree).stream()
+                        .mapToInt(AttributedString::columnLength)
+                        .sum();
+            }
+            return maxWidth;
+        }
+
+        @Override
+        public String toString() {
+            return "DI(" + item + ", maxWidth=" + maxWidth + ")";
         }
     }
 
     /////////////////////////////////
 
+    /** exclusive */
     public int getDisplayMaxLine() {
         return offsetY + height;
     }
+    /** inclusive */
     public int getDisplayMinLine() {
         return offsetY;
     }
@@ -200,9 +292,24 @@ public class TerminalTreeView {
 
     /////////////////////////////////
 
+    /**
+     * <pre>
+     *      0: firstItem
+     *      1: secondItem
+     *         ...
+     *      h: lastItem
+     *     =&gt;
+     *      //firstItem is out
+     *      0: secondItem  //origin
+     *         ...
+     *    h-1: lastItem
+     *      h: getNext(lastItem) //{@link #addNextLine()}
+     * </pre>
+     */
     public boolean scrollToNextLine() {
         boolean result = false;
-        if (displayItems.size() >= getDisplayMaxLine()) {
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        if (displayItems.size() >= height) {
             DisplayItem removed = displayItems.remove(0);
             if (!addNextLine()) {
                 displayItems.add(0, removed); //cancel
@@ -215,16 +322,31 @@ public class TerminalTreeView {
         return result;
     }
 
+    /**
+     * <pre>
+     *      0: firstItem
+     *         ...
+     *         lastPrevItem
+     *      h: lastItem
+     *     =&gt;
+     *      0: getPrevious(firstItem)  //origin
+     *      1: firstItem
+     *         ...
+     *      h: lastPrevItem
+     *      // lastItem is out
+     * </pre>
+     */
     public boolean scrollToPreviousLine() {
         DisplayItem removed = null;
         boolean result = false;
-        if (displayItems.size() >= getDisplayMaxLine()) {
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        if (displayItems.size() >= height) {
             removed = displayItems.remove(displayItems.size() - 1);
         }
 
         if (!displayItems.isEmpty()) {
-            DisplayItem last = displayItems.get(0);
-            TerminalItem prev = tree.getPrevious(last.getItem());
+            DisplayItem top = displayItems.get(0);
+            TerminalItem prev = tree.getPrevious(top.getItem());
             if (prev != null) {
                 displayItems.add(0, makeDisplayItem(prev));
                 result = true;
@@ -251,8 +373,11 @@ public class TerminalTreeView {
 
     /////////////////////////////////
 
+    /** a combination of {@link #makeWriting()} and
+     *  {@link #writeLine(TerminalLineColumnsWriting, boolean, DisplayItem)}*/
     public TerminalLineColumnsWriting write() {
         TerminalLineColumnsWriting writing = makeWriting();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
         displayItems.forEach(item ->
                 writeLine(writing, writing.getLineY() == cursorLine, item));
         return writing;
@@ -263,7 +388,7 @@ public class TerminalTreeView {
     }
 
     public void writeLine(TerminalLineColumnsWriting writing, boolean cursorLine, DisplayItem item) {
-        writeLine(writing, cursorLine, tree.getTokens(item.getItem()));
+        writeLine(writing, cursorLine, item.getTokens(tree));
     }
 
     public void writeLine(TerminalLineColumnsWriting writing, boolean cursorLine, List<AttributedString> tokens) {
@@ -280,6 +405,7 @@ public class TerminalTreeView {
     }
 
     public void writeLineEnd(TerminalLineColumnsWriting writing) {
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
         writing.nextLine(writing.getLineY() + 1 >= displayItems.size());
     }
 
@@ -290,6 +416,7 @@ public class TerminalTreeView {
         if (cursorLine + 1 >= height) {
             scrollToNextLine();
         } else {
+            List<DisplayItem> displayItems = getDisplayItemsWithBuild();
             if (cursorLine < displayItems.size()) {
                 cursorLine++;
             }
@@ -306,16 +433,20 @@ public class TerminalTreeView {
 
     public void openOnCursor(boolean open) {
         int idx = getCursorLine();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
         if (idx >= 0 && idx < displayItems.size()) {
             openDisplayItem(idx, open);
         }
     }
     protected TerminalItem openDisplayItem(int idx, boolean open) {
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+
         DisplayItem displayItem = displayItems.get(idx);
         TerminalItem item = (open ? tree.open(displayItem.getItem()) : tree.close(displayItem.getItem()));
 
         List<DisplayItem> old = displayItems;
         displayItems = new ArrayList<>(height);
+        this.displayItems = displayItems;
         displayItems.addAll(old.subList(0, idx));
 
         BuildIndex buildIndex = new BuildIndex(getDisplayMinLine() + idx, idx);
@@ -327,7 +458,14 @@ public class TerminalTreeView {
         return item;
     }
     protected void reuseRestItems(TerminalItem item, List<DisplayItem> old) {
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        if (item == null) {
+            return;
+        }
         TerminalItem next = tree.getUpperNext(item);
+        if (next == null) {
+            return;
+        }
         boolean afterNext = false;
         for (int i = getCursorLine() + 1, e = old.size(); i < e; ++i) {
             if (displayItems.size() >= height) {
@@ -355,6 +493,7 @@ public class TerminalTreeView {
         }
     }
     public int getDisplayedItemIndex(TerminalItem item) {
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
         int line = 0;
         for (DisplayItem displayItem : displayItems) {
             if (displayItem.getItem().equals(item)) {
@@ -366,6 +505,7 @@ public class TerminalTreeView {
     }
 
     public DisplayItem getDisplayItemOnCursor() {
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
         int idx = getCursorLine();
         if (idx >=0 && idx < displayItems.size()) {
             return displayItems.get(idx);
@@ -388,6 +528,8 @@ public class TerminalTreeView {
         if (item == null) {
             return;
         }
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+
         //an item in displayed items
         int line = getDisplayedItemIndex(item);
         if (line != -1) {
@@ -485,5 +627,16 @@ public class TerminalTreeView {
         }
     }
 
-
+    public void debugLog() {
+        int i = 0;
+        ConsoleLogger.log("w=" + width + ",h=" + height +
+                ", off=(" + offsetX + "," + offsetY + ") " +
+                ", cursorLine=" + cursorLine);
+        for (DisplayItem item : displayItems) {
+            ConsoleLogger.log(i + " : " + item.toString() +
+                    (i == cursorLine ? " : cursorLine" : "") +
+                    "  " + item.getTokens(tree));
+            ++i;
+        }
+    }
 }

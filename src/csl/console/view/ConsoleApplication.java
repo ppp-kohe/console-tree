@@ -74,6 +74,8 @@ public class ConsoleApplication {
             terminal.setAttributes(prevAttributes);
             terminal.handle(Terminal.Signal.WINCH, prevHandler);
             terminal.close();
+
+            ConsoleLogger.closeLog();
         } catch (IOException ioe) {
             error(ioe);
         }

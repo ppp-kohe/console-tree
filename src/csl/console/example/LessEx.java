@@ -9,7 +9,7 @@ import java.io.File;
 public class LessEx {
     public static void main(String[] args) throws Exception {
 
-        Commands.nano(TerminalBuilder.terminal(), System.out, System.err, new File(".").toPath(),
-                new String[] {});
+        Commands.less(TerminalBuilder.terminal(), System.out, System.err, new File(".").toPath(),
+                new String[] {"build.xml"});
     }
 }

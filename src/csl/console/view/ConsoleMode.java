@@ -4,6 +4,7 @@ import org.jline.keymap.KeyMap;
 import org.jline.terminal.Size;
 import org.jline.utils.AttributedString;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -45,8 +46,10 @@ public class ConsoleMode {
     }
 
     public void display(ConsoleApplication app) {
+        List<AttributedString> lines = new ArrayList<>(getLines());
         int[] cursor = getCursorRowAndColumn();
-        app.display(getLines(), cursor[0], cursor[1]);
+
+        app.display(lines, cursor[0], cursor[1]);
     }
 
 

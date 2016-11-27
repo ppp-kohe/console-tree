@@ -1,14 +1,18 @@
 package csl.console.example;
 
-import csl.console.view.*;
+import csl.console.view.ConsoleModeTree;
+import csl.console.view.TerminalItem;
+import csl.console.view.TerminalItemNode;
+import csl.console.view.TerminalTreeBase;
 import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class FileBrowser {
     public static void main(String[] args) {
@@ -36,10 +40,59 @@ public class FileBrowser {
         }
 
         @Override
+        public List<AttributedString> getTokens() {
+            AttributedStringBuilder buf = new AttributedStringBuilder();
+
+            AttributedStyle slashStyle = buf.style().foreground(AttributedStyle.CYAN);
+            AttributedStyle dirStyle = buf.style().foreground(AttributedStyle.RED);
+            AttributedStyle fileStyle = buf.style().foreground(AttributedStyle.BLACK);
+
+
+            if (parent == null) {
+                File f = file.getParentFile();
+                List<File> list = new ArrayList<>();
+                while (f != null) {
+                    if (!f.getName().equals("")) {
+                        list.add(f);
+                    }
+                    f = f.getParentFile();
+                }
+                Collections.reverse(list);
+
+                boolean first = true;
+                for (File sf : list) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        buf.style(slashStyle);
+                        buf.append('/');
+                    }
+                    buf.style(dirStyle);
+                    buf.append(sf.getName());
+                }
+                if (!first) {
+                    buf.style(slashStyle);
+                    buf.append('/');
+                }
+            }
+            if (file.isFile()) {
+                buf.style(fileStyle);
+                buf.append(file.getName());
+            } else {
+                buf.style(dirStyle);
+                buf.append(file.getName());
+                buf.style(slashStyle);
+                buf.append('/');
+            }
+            return Collections.singletonList(buf.toAttributedString());
+        }
+
+        @Override
         public List<TerminalItem> getChildren() {
             if (children == null) {
-                if (file.isDirectory()) {
-                    Arrays.stream(file.listFiles())
+                File[] ls;
+                if (file.isDirectory() && (ls = file.listFiles()) != null) {
+                    Arrays.stream(ls)
                             .map(FileNode::new)
                             .forEach(this::addChild);
                 } else {

@@ -1,9 +1,11 @@
 package csl.console.example;
 
+import csl.console.view.TerminalTreeView;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.impl.DumbTerminal;
 import org.jline.utils.*;
 
 import java.util.ArrayList;
@@ -12,9 +14,10 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 public class Exp {
     public static void main(String[] args) throws Exception {
-        new Exp().test3();
+        new Exp().test4();
     }
 
     Terminal terminal;
@@ -30,12 +33,10 @@ public class Exp {
     Terminal.SignalHandler prevHand;
 
     private void init(boolean set) throws Exception {
-        try {
-            log("class: " + Class.forName("sun.misc.SignalHandler").getName());
-        } catch (Exception ex) {
-            log("ex: " + ex);
-        }
         terminal = TerminalBuilder.builder().nativeSignals(true).build();
+        //terminal = TerminalBuilder.terminal();
+        //terminal = TerminalBuilder.builder().system(false)
+          //      .streams(System.in, System.out).build();
 
         if (set) {
             prevAttr = terminal.enterRawMode();
@@ -82,19 +83,21 @@ public class Exp {
         }
     }
 
-    private String gen(int s) {
+    private AttributedString gen(int s) {
         int v = 0xF0F0F0;
-        StringBuilder buf = new StringBuilder();
+        int[] colors = {AttributedStyle.BRIGHT, AttributedStyle.CYAN, AttributedStyle.MAGENTA, AttributedStyle.YELLOW};
+        AttributedStringBuilder buf = new AttributedStringBuilder();
         for (int i = 0; buf.length() < w; ++i) {
             v = v * 3 + (i + s);
             String n = Integer.toString(v) + "!";
             if (buf.length() + n.length() >= w) {
                 break;
             }
+            buf.style(buf.style().foreground(colors[Math.abs(v) % colors.length]));
             buf.append(n);
             //System.err.println("<" + Integer.toString(v) + ">");
         }
-        return buf.substring(0, Math.min(w, buf.length()));
+        return buf.substring(0, Math.min(w, buf.length())).toAttributedString();
     }
 
     public void test1()  {
@@ -110,7 +113,7 @@ public class Exp {
 
 
             for (int i = 0; i < 10000; ++i) {
-                terminal.writer().append(gen(i));
+                terminal.writer().append(gen(i).toAnsi(terminal));
 
                 terminal.puts(InfoCmp.Capability.carriage_return);
                 if (h >= i) {
@@ -144,7 +147,7 @@ public class Exp {
 
             List<AttributedString> list = new ArrayList<>();
             for (int i = 0; i < 10000; ++i) {
-                list.add(AttributedStringBuilder.append(gen(i), ""));
+                list.add(gen(i));
                 if (list.size() >= h) {
                     list.remove(0);
                 }
@@ -164,7 +167,7 @@ public class Exp {
     public void test3() {
         try {
             init(true);
-            log("test2");
+            log("test3");
 
             Display d = new Display(terminal, true);
 
@@ -175,7 +178,7 @@ public class Exp {
 
             List<AttributedString> list = new ArrayList<>();
             for (int i = 0; i < 10; ++i) {
-                list.add(AttributedStringBuilder.append(gen(i), ""));
+                list.add(gen(i));
 
                 while (list.size() >= h) {
                     list.remove(0);
@@ -192,6 +195,45 @@ public class Exp {
             }
 
         } catch (Exception ex) {
+            ex.printStackTrace();
+        } finally {
+            exit();
+        }
+    }
+
+    public void test4() {
+        try {
+            init(true);
+            log("test4");
+
+            Display d = new Display(terminal, true);
+
+            List<AttributedString> list = new ArrayList<>();
+            for (int i = 0; i < h; ++i) {
+                AttributedString s = new AttributedStringBuilder()
+                        .append(Integer.toString(i))
+                        .toAttributedString();
+                list.add(s);
+            }
+            d.clear();
+
+            d.resize(h, w);
+            d.update(list, size.cursorPos(h - 1, 0));
+            terminal.flush();
+
+            terminal.reader().read();
+
+            list = new ArrayList<>(list);
+            list.remove(list.size() - 2);
+            list.add(0, new AttributedStringBuilder()
+                    .append("/")
+                    .toAttributedString());
+
+            d.update(list, 0);
+            terminal.flush();
+
+            terminal.reader().read();
+        } catch (Exception ex){
             ex.printStackTrace();
         } finally {
             exit();
