@@ -3,6 +3,8 @@ package csl.console.view;
 import org.jline.utils.AttributedString;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class TerminalTreeView {
@@ -10,7 +12,10 @@ public class TerminalTreeView {
     protected TerminalTree tree;
 
     protected List<DisplayItem> displayItems;
-    protected int displayMaxWidth;
+    protected List<DisplayColumn> displayColumns = new ArrayList<>(3);
+    protected int displayScrollableWidth; //virtual column width
+    protected int displayFixedWidth;
+    protected volatile boolean needToUpdateDisplay = true;
 
     protected volatile int width = 100;
     protected volatile int height = 30;
@@ -27,9 +32,6 @@ public class TerminalTreeView {
         displayItems = new ArrayList<>(height);
     }
 
-    public int getDisplayMaxWidth() {
-        return displayMaxWidth;
-    }
     public List<DisplayItem> getDisplayItems() {
         return displayItems;
     }
@@ -50,6 +52,7 @@ public class TerminalTreeView {
     }
     public void setWidth(int width) {
         this.width = width;
+        needToUpdateDisplay = true;
     }
     public int getHeight() {
         return height;
@@ -74,28 +77,33 @@ public class TerminalTreeView {
     }
     /** may re-build and justify the cursor */
     public int getCursorLine() {
-        getDisplayItemsWithBuild();
+        getDisplayItemsWithBuild(false);
         return cursorLine;
     }
     public void setCursorLine(int cursorLine) {
         this.cursorLine = cursorLine;
+        needToUpdateDisplay = true;
     }
 
     /////////////////////////////////
 
-    public List<DisplayItem> getDisplayItemsWithBuild() {
+    public List<DisplayItem> getDisplayItemsWithBuild(boolean requireDisplayTokens) {
         if (needToReBuild) {
             build();
+        }
+        if (requireDisplayTokens && needToUpdateDisplay) {
+            updateDisplayTokens();
         }
         return displayItems;
     }
 
     public void build() {
         displayItems.clear();
+        needToUpdateDisplay = true;
+
         buildLine(new BuildIndex(0, 0), origin);
         addNextLinesToHeight();
         updateOrigin();
-        updateDisplayTokens();
         updateCursorLine();
         needToReBuild = false;
     }
@@ -135,6 +143,7 @@ public class TerminalTreeView {
         } else if (idx.y < getDisplayMaxLine()) {
             if (idx.y >= getDisplayMinLine()) {
                 displayItems.add(idx.displayIndex, makeDisplayItem(item));
+                needToUpdateDisplay = true;
                 ++idx.displayIndex;
             }
             ++idx.y;
@@ -180,7 +189,6 @@ public class TerminalTreeView {
                 break;
             }
         }
-        updateDisplayTokens();
     }
 
     protected boolean addNextLine() {
@@ -188,29 +196,13 @@ public class TerminalTreeView {
         TerminalItem next = tree.getNext(last.getItem());
         if (next != null) {
             displayItems.add(makeDisplayItem(next));
+            needToUpdateDisplay = true;
             return true;
         } else {
             return false;
         }
     }
 
-    protected void updateDisplayTokens() {
-        displayMaxWidth = 0;
-        for (DisplayItem item : displayItems) {
-            int w = getDisplayItemWidth(item);
-            if (displayMaxWidth < w) {
-                displayMaxWidth = w;
-            }
-        }
-    }
-
-    protected int getDisplayItemWidth(DisplayItem item) {
-        return getLineHeadWidth() + item.getMaxWidth(tree);
-    }
-
-    protected int getLineHeadWidth() {
-        return 1;
-    }
 
     protected void updateOrigin() {
         if (!displayItems.isEmpty()) {
@@ -222,10 +214,91 @@ public class TerminalTreeView {
     protected void updateCursorLine() {
         if (cursorLine >= height) {
             cursorLine = height - 1;
+            needToUpdateDisplay = true;
         } else if (cursorLine < 0) {
             cursorLine = 0;
+            needToUpdateDisplay = true;
         }
     }
+
+    protected void updateDisplayTokens() {
+        displayColumns.clear();
+        int i = 0;
+        for (DisplayItem item : displayItems) {
+            item.updateTokens(tree, getLineHead(item.getItem(), i == cursorLine));
+            updateDisplayMaxWidth(item.getColumnWidth());
+            ++i;
+        }
+        updateScrollableColumns();
+        needToUpdateDisplay = false;
+    }
+    protected void updateDisplayMaxWidth(int[] columnWidth) {
+        while (displayColumns.size() < columnWidth.length) {
+            displayColumns.add(new DisplayColumn());
+        }
+        for (int i = 0, l = columnWidth.length; i < l; ++i) {
+            displayColumns.get(i).updateWidth(columnWidth[i]);
+        }
+    }
+    protected void updateScrollableColumns() {
+        int s = 0;
+        int e = displayColumns.size() - 1;
+        int fixedWidth = 0;
+        int limitWidth = width - 10;
+        while (s < e) {
+            DisplayColumn sc = displayColumns.get(s);
+            DisplayColumn ec = displayColumns.get(e);
+
+            boolean selectStart = sc.getWidth() <= ec.getWidth();
+            DisplayColumn c = selectStart ? sc : ec;
+            if (fixedWidth + c.getWidth() < limitWidth) {
+                if (selectStart) {
+                    s++;
+                } else {
+                    e++;
+                }
+                fixedWidth += c.getWidth();
+                c.scrollable = false;
+            }
+        }
+        displayScrollableWidth = displayColumns.stream()
+                .filter(DisplayColumn::isScrollable)
+                .mapToInt(DisplayColumn::getWidth)
+                .sum();
+        displayFixedWidth = fixedWidth;
+    }
+
+    public static class DisplayColumn {
+        public boolean scrollable = true;
+        public int width;
+        public void updateWidth(int w) {
+            if (w > width) {
+                width = w;
+            }
+        }
+
+        public int getWidth() {
+            return width;
+        }
+
+        public boolean isScrollable() {
+            return scrollable;
+        }
+
+        @Override
+        public String toString() {
+            return "DC(" + width + ", scroll=" + scrollable + ")";
+        }
+    }
+
+    private static List<AttributedString> headCursor = Collections.singletonList(new AttributedString("*"));
+    private static List<AttributedString> headSpace = Collections.singletonList(new AttributedString(" "));
+
+    protected List<AttributedString> getLineHead(TerminalItem item, boolean cursorLine) {
+        return cursorLine ? headCursor : headSpace;
+    }
+
+
 
     /////////////////////////////////
 
@@ -245,8 +318,9 @@ public class TerminalTreeView {
 
     public static class DisplayItem {
         protected TerminalItem item;
-        protected List<AttributedString> tokens;
-        protected int maxWidth = -1;
+        protected List<List<AttributedString>> itemTokens;
+        protected List<List<AttributedString>> columnTokens;
+        protected int[] columnWidth = null;
 
         public DisplayItem(TerminalItem item) {
             this.item = item;
@@ -256,25 +330,35 @@ public class TerminalTreeView {
             return item;
         }
 
-        public List<AttributedString> getTokens(TerminalTree tree) {
-            if (tokens == null) {
-                tokens = tree.getTokens(item);
+        public void updateTokens(TerminalTree tree, List<AttributedString> head) {
+            if (itemTokens == null){
+                itemTokens = tree.getColumnTokens(item);
             }
-            return tokens;
+            List<List<AttributedString>> cs = itemTokens;
+            ConsoleLogger.log("cols: " + cs + " head: " + head);
+            columnTokens = new ArrayList<>(cs.size() + 1);
+            if (head != null) {
+                columnTokens.add(head);
+            }
+            columnTokens.addAll(cs);
+            columnWidth = columnTokens.stream()
+                    .mapToInt(c -> c.stream()
+                            .mapToInt(AttributedString::columnLength)
+                            .sum())
+                    .toArray();
         }
 
-        public int getMaxWidth(TerminalTree tree) {
-            if (maxWidth < 0) {
-                maxWidth = getTokens(tree).stream()
-                        .mapToInt(AttributedString::columnLength)
-                        .sum();
-            }
-            return maxWidth;
+        public List<List<AttributedString>> getColumnTokens() {
+            return columnTokens;
+        }
+
+        public int[] getColumnWidth() {
+            return columnWidth;
         }
 
         @Override
         public String toString() {
-            return "DI(" + item + ", maxWidth=" + maxWidth + ")";
+            return "DI(" + item + ", colWidth=" + Arrays.toString(columnWidth) + ")";
         }
     }
 
@@ -308,7 +392,7 @@ public class TerminalTreeView {
      */
     public boolean scrollToNextLine() {
         boolean result = false;
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(false);
         if (displayItems.size() >= height) {
             DisplayItem removed = displayItems.remove(0);
             if (!addNextLine()) {
@@ -318,7 +402,9 @@ public class TerminalTreeView {
             result = true;
         }
         updateOrigin();
-        updateDisplayTokens();
+        if (result) {
+            needToUpdateDisplay = true;
+        }
         return result;
     }
 
@@ -339,7 +425,7 @@ public class TerminalTreeView {
     public boolean scrollToPreviousLine() {
         DisplayItem removed = null;
         boolean result = false;
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(false);
         if (displayItems.size() >= height) {
             removed = displayItems.remove(displayItems.size() - 1);
         }
@@ -355,12 +441,15 @@ public class TerminalTreeView {
             }
         }
         updateOrigin();
-        updateDisplayTokens();
+        if (result) {
+            needToUpdateDisplay = true;
+        }
         return result;
     }
 
     public void scrollToNextColumn() {
-        if (offsetX + width < displayMaxWidth) {
+        getDisplayItemsWithBuild(true); //to calculate the scrollable width
+        if (offsetX + width < displayScrollableWidth) {
             ++offsetX;
         }
     }
@@ -374,12 +463,12 @@ public class TerminalTreeView {
     /////////////////////////////////
 
     /** a combination of {@link #makeWriting()} and
-     *  {@link #writeLine(TerminalLineColumnsWriting, boolean, DisplayItem)}*/
+     *  {@link #writeLine(TerminalLineColumnsWriting, DisplayItem)}*/
     public TerminalLineColumnsWriting write() {
         TerminalLineColumnsWriting writing = makeWriting();
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(true);
         displayItems.forEach(item ->
-                writeLine(writing, writing.getLineY() == cursorLine, item));
+                writeLine(writing, item));
         return writing;
     }
 
@@ -387,25 +476,35 @@ public class TerminalTreeView {
         return new TerminalLineColumnsWriting(width, height);
     }
 
-    public void writeLine(TerminalLineColumnsWriting writing, boolean cursorLine, DisplayItem item) {
-        writeLine(writing, cursorLine, item.getTokens(tree));
-    }
-
-    public void writeLine(TerminalLineColumnsWriting writing, boolean cursorLine, List<AttributedString> tokens) {
-        writeLineHead(writing, cursorLine);
-        writing.nextColumn(offsetX);
-        tokens.forEach(writing::append);
+    public void writeLine(TerminalLineColumnsWriting writing, DisplayItem item) {
+        boolean scrollable = false; //[fxd],[fxd]...[fxd],[scr,scr...scr],[fxd],[fxd]...[fdx]
+        List<List<AttributedString>> columnTokens = item.getColumnTokens();
+        for (int i = 0, l = columnTokens.size(); i < l; ++i) {
+            DisplayColumn column = displayColumns.get(i);
+            if (!scrollable) {
+                if (column.isScrollable()) { //start of scrollable
+                    writing.appendSpace(writing.getLineColumnRemaining());
+                    writing.nextColumn(offsetX, displayScrollableWidth);
+                    scrollable = true;
+                } else {
+                    writing.appendSpace(writing.getLineColumnRemaining());
+                    writing.nextColumn(0, column.getWidth());
+                }
+            } else {
+                if (!column.isScrollable()) { //end of scrollable
+                    writing.appendSpace(writing.getLineColumnRemaining());
+                    writing.nextColumn(0, column.getWidth());
+                    scrollable = false;
+                }
+            }
+            columnTokens.get(i).forEach(writing::append);
+        }
         writeLineEnd(writing);
     }
 
-    public void writeLineHead(TerminalLineColumnsWriting writing, boolean cursorLine) {
-        writing.nextColumn(0, getLineHeadWidth());
-        writing.append(cursorLine ? "*" : " ");
-        writing.appendSpace(writing.getLineColumnRemaining());
-    }
 
     public void writeLineEnd(TerminalLineColumnsWriting writing) {
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(true);
         writing.nextLine(writing.getLineY() + 1 >= displayItems.size());
     }
 
@@ -416,9 +515,10 @@ public class TerminalTreeView {
         if (cursorLine + 1 >= height) {
             scrollToNextLine();
         } else {
-            List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+            List<DisplayItem> displayItems = getDisplayItemsWithBuild(false);
             if (cursorLine < displayItems.size()) {
                 cursorLine++;
+                needToUpdateDisplay = true;
             }
         }
     }
@@ -428,25 +528,26 @@ public class TerminalTreeView {
             scrollToPreviousLine();
         } else {
             --cursorLine;
+            needToUpdateDisplay = true;
         }
     }
 
     public void openOnCursor(boolean open) {
         int idx = getCursorLine();
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(false);
         if (idx >= 0 && idx < displayItems.size()) {
             openDisplayItem(idx, open);
         }
     }
     protected TerminalItem openDisplayItem(int idx, boolean open) {
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
-
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(false);
         DisplayItem displayItem = displayItems.get(idx);
         TerminalItem item = (open ? tree.open(displayItem.getItem()) : tree.close(displayItem.getItem()));
 
         List<DisplayItem> old = displayItems;
         displayItems = new ArrayList<>(height);
         this.displayItems = displayItems;
+        needToUpdateDisplay = true;
         displayItems.addAll(old.subList(0, idx));
 
         BuildIndex buildIndex = new BuildIndex(getDisplayMinLine() + idx, idx);
@@ -458,7 +559,7 @@ public class TerminalTreeView {
         return item;
     }
     protected void reuseRestItems(TerminalItem item, List<DisplayItem> old) {
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(false);
         if (item == null) {
             return;
         }
@@ -475,6 +576,7 @@ public class TerminalTreeView {
             if (afterNext || rest.getItem().equals(next)) {
                 afterNext = true;
                 displayItems.add(rest);
+                needToUpdateDisplay = true;
             }
         }
     }
@@ -493,7 +595,7 @@ public class TerminalTreeView {
         }
     }
     public int getDisplayedItemIndex(TerminalItem item) {
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(false);
         int line = 0;
         for (DisplayItem displayItem : displayItems) {
             if (displayItem.getItem().equals(item)) {
@@ -505,7 +607,7 @@ public class TerminalTreeView {
     }
 
     public DisplayItem getDisplayItemOnCursor() {
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(false);
         int idx = getCursorLine();
         if (idx >=0 && idx < displayItems.size()) {
             return displayItems.get(idx);
@@ -528,12 +630,13 @@ public class TerminalTreeView {
         if (item == null) {
             return;
         }
-        List<DisplayItem> displayItems = getDisplayItemsWithBuild();
+        List<DisplayItem> displayItems = getDisplayItemsWithBuild(false);
 
         //an item in displayed items
         int line = getDisplayedItemIndex(item);
         if (line != -1) {
             cursorLine = line;
+            needToUpdateDisplay = true;
             return;
         }
 
@@ -541,6 +644,7 @@ public class TerminalTreeView {
         //e.g. height=10, cursorLine=6 => [0,1,2,3,4,5,6],7,8,9
         TerminalItem last = item;
         displayItems.clear();
+        needToUpdateDisplay = true;
         for (int i = 0, n = cursorLine; i <= n; ++i) {
             if (last != null) {
                 displayItems.add(0, makeDisplayItem(last));
@@ -632,10 +736,20 @@ public class TerminalTreeView {
         ConsoleLogger.log("w=" + width + ",h=" + height +
                 ", off=(" + offsetX + "," + offsetY + ") " +
                 ", cursorLine=" + cursorLine);
+
+        StringBuilder buf = new StringBuilder();
+        buf.append("column: ");
+        for (DisplayColumn c : displayColumns) {
+            buf.append(" [").append(i).append("] ").append(c);
+            ++i;
+        }
+        ConsoleLogger.log(buf.toString());
+
+        i = 0;
         for (DisplayItem item : displayItems) {
             ConsoleLogger.log(i + " : " + item.toString() +
                     (i == cursorLine ? " : cursorLine" : "") +
-                    "  " + item.getTokens(tree));
+                    "  " + item.getColumnTokens());
             ++i;
         }
     }

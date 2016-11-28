@@ -23,11 +23,32 @@ import java.util.*;
  *  </ol>
  */
 public class TerminalTreeBase implements TerminalTree {
-    protected Set<TerminalItem> openItems = initItems();
+    protected Set<TerminalItem> openItems = initOpenItems();
     protected boolean indent = true;
 
-    protected Set<TerminalItem> initItems() {
-        return new HashSet<>();
+    @Override
+    public List<List<AttributedString>> getColumnTokens(TerminalItem item) {
+        ArrayList<List<AttributedString>> list = new ArrayList<>(3);
+        List<AttributedString> hs = getHeadTokens(item);
+        List<AttributedString> ms = getTokens(item);
+        List<AttributedString> ts = getTailTokens(item);
+        if (hs != null) {
+            list.add(hs);
+        }
+        if (ms != null) {
+            list.add(ms);
+        }
+        if (ts != null) {
+            list.add(ts);
+        }
+        return list;
+    }
+
+    public List<AttributedString> getHeadTokens(TerminalItem item) {
+        return null;
+    }
+    public List<AttributedString> getTailTokens(TerminalItem item) {
+        return null;
     }
 
     public TerminalTreeBase withIndent(boolean indent) {
@@ -96,6 +117,13 @@ public class TerminalTreeBase implements TerminalTree {
         }
     }
 
+    //////////////////////////////////////
+
+    protected Set<TerminalItem> initOpenItems() {
+        return new HashSet<>();
+    }
+
+
     @Override
     public TerminalItem open(TerminalItem item) {
         if (item != null) {
@@ -119,6 +147,8 @@ public class TerminalTreeBase implements TerminalTree {
         }
         return openItems.contains(item);
     }
+
+    //////////////////////////////////////
 
     @Override
     public TerminalItem getParent(TerminalItem item) {

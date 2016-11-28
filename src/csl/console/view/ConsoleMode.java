@@ -21,7 +21,7 @@ public class ConsoleMode {
 
     protected KeyMap<ConsoleCommand> initCommands(ConsoleApplication app) {
         KeyMap<ConsoleCommand> map = new KeyMap<>();
-        map.bind(ConsoleApplication::end, "q", "Q", KeyMap.esc());
+        map.bind(this::end, "q", "Q", KeyMap.esc());
         return map;
     }
 
@@ -70,5 +70,9 @@ public class ConsoleMode {
     /** {row, column}. called from {@link #display(ConsoleApplication)} */
     public int[] getCursorRowAndColumn() {
         return new int[] {0, 0};
+    }
+
+    public void end(ConsoleApplication app) {
+        app.end();
     }
 }

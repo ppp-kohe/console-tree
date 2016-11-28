@@ -171,7 +171,7 @@ public class TerminalLineColumnsWriting {
 
     public void append(AttributedString token, boolean advanceOnly) {
         int logicalTokenRangeStart = getLogicalColumnX();
-        int logicalTokenRangeEnd =  logicalTokenRangeStart + token.length();
+        int logicalTokenRangeEnd =  logicalTokenRangeStart + token.columnLength();
 
         if (isInsideOfDisplayedColumn(logicalTokenRangeStart, logicalTokenRangeEnd)) {
             appendEntire(token, advanceOnly);

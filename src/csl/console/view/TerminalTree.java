@@ -5,6 +5,9 @@ import org.jline.utils.AttributedString;
 import java.util.List;
 
 public interface TerminalTree {
+
+    List<List<AttributedString>> getColumnTokens(TerminalItem item);
+
     /** returns the tokens for the main column, including indents */
     List<AttributedString> getTokens(TerminalItem item);
 
