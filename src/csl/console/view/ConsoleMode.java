@@ -46,8 +46,8 @@ public class ConsoleMode {
     }
 
     public void display(ConsoleApplication app) {
-        List<AttributedString> lines = new ArrayList<>(getLines());
-        int[] cursor = getCursorRowAndColumn();
+        List<AttributedString> lines = new ArrayList<>(getLines(app));
+        int[] cursor = getCursorRowAndColumn(app);
 
         app.display(lines, cursor[0], cursor[1]);
     }
@@ -63,12 +63,12 @@ public class ConsoleMode {
     }
 
     /** called from {@link #display(ConsoleApplication)} */
-    public List<AttributedString> getLines() {
+    public List<AttributedString> getLines(ConsoleApplication app) {
         return Collections.emptyList();
     }
 
     /** {row, column}. called from {@link #display(ConsoleApplication)} */
-    public int[] getCursorRowAndColumn() {
+    public int[] getCursorRowAndColumn(ConsoleApplication app) {
         return new int[] {0, 0};
     }
 

@@ -88,12 +88,12 @@ public class ConsoleModeTree extends ConsoleMode {
     }
 
     @Override
-    public int[] getCursorRowAndColumn() {
+    public int[] getCursorRowAndColumn(ConsoleApplication app) {
         return new int[] {treeView.getCursorLine(), 0};
     }
 
     @Override
-    public List<AttributedString> getLines() {
+    public List<AttributedString> getLines(ConsoleApplication app) {
         return treeView.write().getLines();
     }
 
