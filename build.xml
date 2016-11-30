@@ -2,6 +2,7 @@
          xmlns:ivy="antlib:org.apache.ivy.ant"
          default="dist">
     <property name="opt.distdir" location="."/>
+    <property name="ivy.settings.file" value="${user.home}/.ivy2/ivysettings.xml"/>
 
     <path id="jars">
         <fileset dir="lib/">
@@ -62,5 +63,21 @@
         <delete dir="bin"/>
     </target>
 
+    <target name="deploy" depends="build">
+        <mkdir dir="publish"/>
+
+        <ivy:settings />
+
+        <ivy:resolve />
+        <ivy:deliver deliverpattern="publish/ivy.xml" />
+        <ivy:makepom ivyfile="publish/ivy.xml" pomfile="publish/console-tree.pom"/>
+
+        <jar destfile="publish/console-tree.jar" basedir="bin">
+        </jar>
+
+        <ivy:publish resolver="internal-snapshots" publishivy="false" overwrite="true">
+            <artifacts pattern="publish/[artifact].[ext]"/>
+        </ivy:publish>
+    </target>
 
 </project>
