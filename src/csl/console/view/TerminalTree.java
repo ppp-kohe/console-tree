@@ -8,9 +8,6 @@ public interface TerminalTree {
 
     List<List<AttributedString>> getColumnTokens(TerminalItem item);
 
-    /** returns the tokens for the main column, including indents */
-    List<AttributedString> getTokens(TerminalItem item);
-
     TerminalItem open(TerminalItem item);
     TerminalItem close(TerminalItem item);
 

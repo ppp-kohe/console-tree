@@ -22,9 +22,7 @@ public class FileBrowser {
     public void run(File dir) {
         TerminalTreeBase base = new TerminalTreeBase();
         FileNode root = new FileNode(dir);
-        base.open(root);
-
-        new ConsoleModeTree(base).run(root);
+        ConsoleModeTree.start(base, "File Browser", root);
     }
 
     public static class FileNode extends TerminalItemNode {
@@ -40,6 +38,10 @@ public class FileBrowser {
         }
 
         @Override
+        public List<List<AttributedString>> getColumnTokens() {
+            return Collections.singletonList(getTokens());
+        }
+
         public List<AttributedString> getTokens() {
             AttributedStringBuilder buf = new AttributedStringBuilder();
 

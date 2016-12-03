@@ -255,7 +255,7 @@ public class TerminalTreeView {
                 if (selectStart) {
                     s++;
                 } else {
-                    e++;
+                    e--;
                 }
                 fixedWidth += c.getWidth();
                 c.scrollable = false;

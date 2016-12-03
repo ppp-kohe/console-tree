@@ -15,11 +15,12 @@ import java.util.List;
 
 /**
  * <pre>
- *     app.initTerminal();
+ *     app.initTerminalOnTop();
  *     try {
- *         app.runLoop();
+ *         ...//provides specific info. for  defaultMode
+ *         app.runLoopOnTop();
  *     } finally {
- *         app.exitTerminal();
+ *         app.exitTerminalOnTop();
  *     }
  * </pre>
  */
@@ -39,7 +40,7 @@ public class ConsoleApplication {
         this.defaultMode = defaultMode;
     }
 
-    public void initTerminal() {
+    public void initTerminalOnTop() {
         try {
             terminal = TerminalBuilder.builder()
                     .nativeSignals(true)
@@ -48,7 +49,7 @@ public class ConsoleApplication {
 
             terminal.puts(InfoCmp.Capability.enter_ca_mode);
             terminal.puts(InfoCmp.Capability.keypad_xmit);
-            prevHandler = terminal.handle(Terminal.Signal.WINCH, this::handle);
+            prevHandler = terminal.handle(Terminal.Signal.WINCH, this::handleOnTop);
 
             reader = new BindingReader(terminal.reader());
 
@@ -66,7 +67,7 @@ public class ConsoleApplication {
         }
     }
 
-    public void exitTerminal() {
+    public void exitTerminalOnTop() {
         try {
             terminal.puts(InfoCmp.Capability.exit_ca_mode);
             terminal.puts(InfoCmp.Capability.keypad_local);
@@ -99,18 +100,18 @@ public class ConsoleApplication {
 
     ///////////////////////
 
-    public void runLoop() {
+    public void runLoopOnTop() {
         while (currentMode != null) {
-            currentMode.runLoop(this);
+            currentMode.runLoopFromApp(this);
         }
     }
 
     /** automatically called when WINCH (window size change) */
-    public synchronized void handle(Terminal.Signal signal) {
+    public synchronized void handleOnTop(Terminal.Signal signal) {
         if (signal.equals(Terminal.Signal.WINCH)) {
             size = terminal.getSize();
             sizeChanged = true;
-            currentMode.sizeUpdated(size);
+            currentMode.sizeUpdatedFromApp(size);
         }
     }
 
@@ -128,11 +129,11 @@ public class ConsoleApplication {
 
     ///////////////////////
 
-    public void end() {
+    public void endFromMode() {
         setCurrentMode(null);
     }
 
-    public void display(List<AttributedString> lines, int cursorRow, int cursorColumn) {
+    public void displayFromMode(List<AttributedString> lines, int cursorRow, int cursorColumn) {
         if (sizeChanged) {
             sizeChanged = false;
             display.clear();
@@ -144,19 +145,5 @@ public class ConsoleApplication {
         terminal.flush();
     }
 
-    ////////////////////////
-
-    public String getKeyDown() {
-        return KeyMap.key(terminal, InfoCmp.Capability.key_down);
-    }
-    public String getKeyUp() {
-        return KeyMap.key(terminal, InfoCmp.Capability.key_up);
-    }
-    public String getKeyLeft() {
-        return KeyMap.key(terminal, InfoCmp.Capability.key_left);
-    }
-    public String getKeyRight() {
-        return KeyMap.key(terminal, InfoCmp.Capability.key_right);
-    }
 
 }

@@ -28,27 +28,27 @@ public class TerminalTreeBase implements TerminalTree {
 
     @Override
     public List<List<AttributedString>> getColumnTokens(TerminalItem item) {
-        ArrayList<List<AttributedString>> list = new ArrayList<>(3);
-        List<AttributedString> hs = getHeadTokens(item);
-        List<AttributedString> ms = getTokens(item);
-        List<AttributedString> ts = getTailTokens(item);
-        if (hs != null) {
-            list.add(hs);
+        if (item == null) {
+            return Collections.emptyList();
+        } else if (item instanceof TerminalItemLine) {
+            return getColumnTokensWithIndents(item,
+                    ((TerminalItemLine) item).getColumnTokens());
+        } else {
+            return getColumnTokensWithIndents(item, Collections.singletonList(Collections.singletonList(
+                    new AttributedString(item.toString()))));
         }
-        if (ms != null) {
-            list.add(ms);
-        }
-        if (ts != null) {
-            list.add(ts);
-        }
-        return list;
     }
 
-    public List<AttributedString> getHeadTokens(TerminalItem item) {
-        return null;
-    }
-    public List<AttributedString> getTailTokens(TerminalItem item) {
-        return null;
+    /** inserts indents only if isIndent() is true */
+    public List<List<AttributedString>> getColumnTokensWithIndents(TerminalItem item, List<List<AttributedString>> colTokens) {
+        if (indent) {
+            List<List<AttributedString>> colTokensWithIndent = new ArrayList<>(colTokens.size() + 1);
+            colTokensWithIndent.add(Collections.singletonList(getIndent(item)));
+            colTokensWithIndent.addAll(colTokens);
+            return colTokensWithIndent;
+        } else {
+            return colTokens;
+        }
     }
 
     public TerminalTreeBase withIndent(boolean indent) {
@@ -60,33 +60,6 @@ public class TerminalTreeBase implements TerminalTree {
         return indent;
     }
 
-    @Override
-    public List<AttributedString> getTokens(TerminalItem item) {
-        List<AttributedString> attrs = getTokensWithoutIndents(item);
-        if (indent) {
-            List<AttributedString> attrsWithIndent = new ArrayList<>(attrs.size() + 1);
-            attrsWithIndent.add(getIndent(item));
-            attrsWithIndent.addAll(attrs);
-            return attrsWithIndent;
-        } else {
-            return attrs;
-        }
-    }
-
-    public List<AttributedString> getTokensWithoutIndents(TerminalItem item) {
-        if (item == null) {
-            return Collections.emptyList();
-        } else if (item instanceof TerminalItemLine) {
-            List<AttributedString> list = ((TerminalItemLine) item).getTokens();
-            if (list == null) {
-                return Collections.emptyList();
-            } else {
-                return list;
-            }
-        } else {
-            return Collections.singletonList(new AttributedString(item.toString()));
-        }
-    }
 
     public AttributedString getIndent(TerminalItem item) {
         AttributedStringBuilder buf = new AttributedStringBuilder();

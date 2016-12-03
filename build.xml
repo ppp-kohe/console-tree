@@ -17,6 +17,7 @@
     </path>
 
     <target name="getlib">
+        <ivy:settings />
         <ivy:retrieve pattern="lib/[artifact]-[revision].[ext]" conf="dist"/>
     </target>
 
@@ -61,6 +62,7 @@
 
     <target name="clean">
         <delete dir="bin"/>
+        <delete dir="publish"/>
     </target>
 
     <target name="deploy" depends="build">
@@ -70,9 +72,9 @@
 
         <ivy:resolve />
         <ivy:deliver deliverpattern="publish/ivy.xml" />
-        <ivy:makepom ivyfile="publish/ivy.xml" pomfile="publish/console-tree.pom"/>
+        <ivy:makepom ivyfile="publish/ivy.xml" pomfile="publish/${ivy.module}.pom"/>
 
-        <jar destfile="publish/console-tree.jar" basedir="bin">
+        <jar destfile="publish/${ivy.module}.jar" basedir="bin">
         </jar>
 
         <ivy:publish resolver="internal-snapshots" publishivy="false" overwrite="true">

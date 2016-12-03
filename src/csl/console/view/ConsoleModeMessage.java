@@ -15,6 +15,16 @@ public class ConsoleModeMessage extends ConsoleMode {
         this.backMode = backMode;
     }
 
+    public ConsoleModeMessage(ConsoleApplication app, ConsoleMode backMode) {
+        this(backMode);
+        init(app);
+    }
+
+    @Override
+    public String getName() {
+        return "Message";
+    }
+
     @Override
     protected KeyMap<ConsoleCommand> initCommands(ConsoleApplication app) {
         KeyMap<ConsoleCommand> keys = super.initCommands(app);
@@ -36,6 +46,11 @@ public class ConsoleModeMessage extends ConsoleMode {
 
     public List<AttributedString> getMessageLines() {
         return messageLines;
+    }
+
+    public void setCurrentModeAndRunLoop(ConsoleApplication app) {
+        app.setCurrentMode(this);
+        app.runLoopOnTop();
     }
 
     @Override

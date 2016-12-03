@@ -276,11 +276,11 @@ public class TerminalLineColumnsWriting {
 
     public void appendSpace(int n) {
         char[] ss = new char[n];
-        Arrays.fill(new char[n], ' ');
+        Arrays.fill(ss, ' ');
         append(String.valueOf(ss));
     }
 
     public int getLineColumnRemaining() {
-        return Math.min(0, lineColumnEnd - lineX);
+        return Math.max(0, lineColumnEnd - lineX);
     }
 }
