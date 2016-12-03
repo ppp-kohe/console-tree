@@ -87,12 +87,13 @@ public interface ConsoleCommand {
             return addKeySequence(key(key));
         }
 
-        public void bind(ConsoleApplication app, KeyMap<ConsoleCommand> keyMap) {
+        public ConsoleCommandWithName bind(ConsoleApplication app, KeyMap<ConsoleCommand> keyMap) {
             keyMap.bind(this, keys.stream()
                     .map(ks -> ks.stream()
                             .map(k -> k.toKey(app))
                             .reduce("", (p,k) -> p + k))
                     .collect(Collectors.toList()));
+            return this;
         }
 
         @Override

@@ -20,6 +20,7 @@ import java.util.stream.Collectors;
  */
 public class ConsoleMode {
     protected KeyMap<ConsoleCommand> commands;
+    protected ConsoleCommand.ConsoleCommandWithName endCommand;
 
     public ConsoleApplication makeApp() {
         return new ConsoleApplication(this);
@@ -39,7 +40,7 @@ public class ConsoleMode {
 
     protected KeyMap<ConsoleCommand> initCommands(ConsoleApplication app) {
         KeyMap<ConsoleCommand> map = new KeyMap<>();
-        ConsoleCommand.command(this::end, "Quit", "")
+        endCommand = ConsoleCommand.command(this::end, "Quit", "")
                 .addKeys('q', 'Q', ConsoleCommand.ESC)
                 .bind(app, map);
         return map;

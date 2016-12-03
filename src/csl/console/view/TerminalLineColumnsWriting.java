@@ -271,7 +271,7 @@ public class TerminalLineColumnsWriting {
     ////////////////////////////////////////////
 
     public void append(String str) {
-        append(new AttributedString(str));
+        append(new AttributedStringBuilder().append(str).toAttributedString());
     }
 
     public void appendSpace(int n) {

@@ -14,6 +14,7 @@ public class ConsoleModeTree extends ConsoleMode {
 
     protected ConsoleModeHelp help;
 
+
     public ConsoleModeTree(TerminalTree tree) {
         this.tree = tree;
     }
@@ -82,73 +83,88 @@ public class ConsoleModeTree extends ConsoleMode {
         treeView.build();
     }
 
+    protected ConsoleCommand.ConsoleCommandWithName openOrCloseCommand;
+    protected ConsoleCommand.ConsoleCommandWithName nextLinCommand;
+    protected ConsoleCommand.ConsoleCommandWithName prevLineCommand;
+    protected ConsoleCommand.ConsoleCommandWithName rightCommand;
+    protected ConsoleCommand.ConsoleCommandWithName leftCommand;
+    protected ConsoleCommand.ConsoleCommandWithName pageUpCommand;
+    protected ConsoleCommand.ConsoleCommandWithName pageDownCommand;
+    protected ConsoleCommand.ConsoleCommandWithName parentCommand;
+    protected ConsoleCommand.ConsoleCommandWithName firstChildCommand;
+    protected ConsoleCommand.ConsoleCommandWithName lastChildCommand;
+    protected ConsoleCommand.ConsoleCommandWithName nextSiblingCommand;
+    protected ConsoleCommand.ConsoleCommandWithName prevSiblingCommand;
+    protected ConsoleCommand.ConsoleCommandWithName debugLogCommand;
+    protected ConsoleCommand.ConsoleCommandWithName helpCommand;
+
     @Override
     protected KeyMap<ConsoleCommand> initCommands(ConsoleApplication app) {
         KeyMap<ConsoleCommand> keys = super.initCommands(app);
 
-        ConsoleCommand.command(a -> treeView.openOrCloseOnCursor(),
+        openOrCloseCommand = ConsoleCommand.command(a -> treeView.openOrCloseOnCursor(),
                 "Open/Close", "").addKeys('\r', ' ')
                 .bind(app, keys);
 
-        ConsoleCommand.command(a -> treeView.scrollToNextLineWithCursor(),
+        nextLinCommand = ConsoleCommand.command(a -> treeView.scrollToNextLineWithCursor(),
                 "Next line", "")
                 .addKeys('e', 'j').addCtrlKey('E').addKey(InfoCmp.Capability.key_down)
                 .bind(app, keys);
 
-        ConsoleCommand.command(a -> treeView.scrollToPreviousLineWithCursor(),
+        prevLineCommand = ConsoleCommand.command(a -> treeView.scrollToPreviousLineWithCursor(),
                 "Previous line", "")
                 .addKeys('y', 'k').addCtrlKey('Y').addCtrlKey('K').addKey(InfoCmp.Capability.key_up)
                 .bind(app, keys);
 
-        ConsoleCommand.command(a -> treeView.scrollToNextColumn(),
+        rightCommand = ConsoleCommand.command(a -> treeView.scrollToNextColumn(),
                 "Right", "")
                 .addKey(InfoCmp.Capability.key_right)
                 .bind(app, keys);
 
-        ConsoleCommand.command(a -> treeView.scrollToPreviousColumn(),
+        leftCommand = ConsoleCommand.command(a -> treeView.scrollToPreviousColumn(),
                 "Left", "")
                 .addKey(InfoCmp.Capability.key_left)
                 .bind(app, keys);
 
-        ConsoleCommand.command(a -> treeView.scrollUpPage(),
+        pageUpCommand = ConsoleCommand.command(a -> treeView.scrollUpPage(),
                 "Page up", "")
                 .addKeys('u').addCtrlKey('U')
                 .bind(app, keys);
 
-        ConsoleCommand.command(a -> treeView.scrollDownPage(),
+        pageDownCommand = ConsoleCommand.command(a -> treeView.scrollDownPage(),
                 "Page down", "")
                 .addKeys('d').addCtrlKey('D')
                 .bind(app, keys);
 
-        ConsoleCommand.command(a -> treeView.moveToParent(),
+        parentCommand = ConsoleCommand.command(a -> treeView.moveToParent(),
                 "Move to parent", "")
                 .addKeys('p')
                 .bind(app, keys);
-        ConsoleCommand.command(a -> treeView.moveToLastChild(),
+        lastChildCommand = ConsoleCommand.command(a -> treeView.moveToLastChild(),
                 "Move to last child", "")
                 .addKeys('l')
                 .bind(app, keys);
-        ConsoleCommand.command(a -> treeView.moveToFirstChild(),
+        firstChildCommand = ConsoleCommand.command(a -> treeView.moveToFirstChild(),
                 "Move to first child", "")
                 .addKeys('f')
                 .bind(app, keys);
-        ConsoleCommand.command(a -> treeView.moveToPreviousSibling(),
-                "Move to previous sibling", "")
-                .addKeys('r')
-                .bind(app, keys);
-        ConsoleCommand.command(a -> treeView.moveToNextSibling(),
+        nextSiblingCommand = ConsoleCommand.command(a -> treeView.moveToNextSibling(),
                 "Move to next sibling", "")
                 .addKeys('x')
                 .bind(app, keys);
+        prevSiblingCommand = ConsoleCommand.command(a -> treeView.moveToPreviousSibling(),
+                "Move to previous sibling", "")
+                .addKeys('r')
+                .bind(app, keys);
 
-        ConsoleCommand.command(a -> treeView.debugLog(),
+        debugLogCommand = ConsoleCommand.command(a -> treeView.debugLog(),
                 "Debug log", "")
                 .addKeys('\\')
                 .bind(app, keys);
 
         //TODO search: forward /, backward ?, next n, prev N
 
-        ConsoleCommand.command(this::showHelp,
+        helpCommand = ConsoleCommand.command(this::showHelp,
                 "Help", "")
                 .addKeys('h', 'H')
                 .bind(app, keys);

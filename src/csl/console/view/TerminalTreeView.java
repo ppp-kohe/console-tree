@@ -483,16 +483,22 @@ public class TerminalTreeView {
             DisplayColumn column = displayColumns.get(i);
             if (!scrollable) {
                 if (column.isScrollable()) { //start of scrollable
-                    writing.appendSpace(writing.getLineColumnRemaining());
+                    if (i > 0) {
+                        writing.appendSpace(writing.getLineColumnRemaining());
+                    }
                     writing.nextColumn(offsetX, displayScrollableWidth);
                     scrollable = true;
                 } else {
-                    writing.appendSpace(writing.getLineColumnRemaining());
+                    if (i > 0) {
+                        writing.appendSpace(writing.getLineColumnRemaining());
+                    }
                     writing.nextColumn(0, column.getWidth());
                 }
             } else {
                 if (!column.isScrollable()) { //end of scrollable
-                    writing.appendSpace(writing.getLineColumnRemaining());
+                    if (i > 0) {
+                        writing.appendSpace(writing.getLineColumnRemaining());
+                    }
                     writing.nextColumn(0, column.getWidth());
                     scrollable = false;
                 }
