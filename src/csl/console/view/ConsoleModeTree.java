@@ -36,6 +36,7 @@ public class ConsoleModeTree extends ConsoleMode {
 
     protected ConsoleModeHelp help;
     protected ConsoleModeMessage message;
+    protected ConsoleModeInput search;
 
     public ConsoleModeTree(TerminalTree tree) {
         this.tree = tree;
@@ -84,10 +85,10 @@ public class ConsoleModeTree extends ConsoleMode {
         super.init(app);
         treeView = new TerminalTreeView(null, tree);
         sizeUpdatedFromApp(app.getSize());
-        //TODO search
 
         initHelp(app);
         initMessage(app);
+        initSearch(app);
     }
 
     protected void initHelp(ConsoleApplication app) {
@@ -96,6 +97,10 @@ public class ConsoleModeTree extends ConsoleMode {
 
     protected void initMessage(ConsoleApplication app) {
         this.message = new ConsoleModeMessage(app);
+    }
+
+    protected void initSearch(ConsoleApplication app) {
+        this.search = new ConsoleModeInput(app);
     }
 
     public void setCurrentModeAndRunLoop(ConsoleApplication app, TerminalItem origin) {
@@ -136,21 +141,21 @@ public class ConsoleModeTree extends ConsoleMode {
 
         nextLinCommand = ConsoleCommand.command(a -> treeView.scrollToNextLineWithCursor(),
                 "Next line", "")
-                .addKeys('e', 'j').addCtrlKey('E').addKey(InfoCmp.Capability.key_down)
+                .addKeys('e', 'j').addCtrlKey('E').addCtrlKey('N').addKey(InfoCmp.Capability.key_down)
                 .bind(app, keys);
 
         prevLineCommand = ConsoleCommand.command(a -> treeView.scrollToPreviousLineWithCursor(),
                 "Previous line", "")
-                .addKeys('y', 'k').addCtrlKey('Y').addCtrlKey('K').addKey(InfoCmp.Capability.key_up)
+                .addKeys('y', 'k').addCtrlKey('Y').addCtrlKey('K').addCtrlKey('P').addKey(InfoCmp.Capability.key_up)
                 .bind(app, keys);
 
         rightCommand = ConsoleCommand.command(a -> treeView.scrollToNextColumn(),
-                "Right", "")
+                "Right", "").addCtrlKey('F')
                 .addKey(InfoCmp.Capability.key_right)
                 .bind(app, keys);
 
         leftCommand = ConsoleCommand.command(a -> treeView.scrollToPreviousColumn(),
-                "Left", "")
+                "Left", "").addCtrlKey('B')
                 .addKey(InfoCmp.Capability.key_left)
                 .bind(app, keys);
 
@@ -185,12 +190,13 @@ public class ConsoleModeTree extends ConsoleMode {
                 .addKeys('r')
                 .bind(app, keys);
 
+        //TODO search: forward /, backward ?, next n, prev N
+
+
         debugLogCommand = ConsoleCommand.command(a -> treeView.debugLog(),
                 "Debug log", "")
                 .addKeys('\\')
                 .bind(app, keys);
-
-        //TODO search: forward /, backward ?, next n, prev N
 
         helpCommand = ConsoleCommand.command(this::showHelp,
                 "Help", "")
@@ -198,7 +204,7 @@ public class ConsoleModeTree extends ConsoleMode {
                 .bind(app, keys);
 
         infoCommand = ConsoleCommand.command(this::showInfo,
-                "Item infomation", "")
+                "Item information", "")
                 .addKeys('i', 'I')
                 .bind(app, keys);
 

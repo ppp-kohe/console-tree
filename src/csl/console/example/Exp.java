@@ -1,6 +1,8 @@
 package csl.console.example;
 
 import csl.console.view.TerminalTreeView;
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
@@ -17,7 +19,7 @@ import java.util.logging.Logger;
 
 public class Exp {
     public static void main(String[] args) throws Exception {
-        new Exp().test4();
+        new Exp().test5();
     }
 
     Terminal terminal;
@@ -235,6 +237,61 @@ public class Exp {
             terminal.reader().read();
         } catch (Exception ex){
             ex.printStackTrace();
+        } finally {
+            exit();
+        }
+    }
+
+    public void test5() {
+        try {
+            init(true);
+            log("test5");
+
+            Display d = new Display(terminal, true);
+
+            List<AttributedString> list = new ArrayList<>();
+            for (int i = 0; i < h; ++i) {
+                //list.add(new AttributedStringBuilder().append("line " + i).toAttributedString());
+                list.add(gen(i));
+            }
+            d.clear();
+            d.resize(h, w);
+            d.update(list, size.cursorPos(h - 1, 0));
+
+            LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+            log("key: " + reader.getKeyMaps());
+            int i = 0;
+            while (true) {
+
+                String read = reader.readLine("hello[" + i + "] ");
+                log("read: <" + read + ">");
+
+                if (read.equals("exit")) {
+                    break;
+                }
+
+                list.set(i, new AttributedStringBuilder()
+                        .append("line ").append(Integer.toString(i))
+                        .append(read).toAttributedString());
+
+                if (i >= h) {
+                    i = 0;
+                } else {
+                    ++i;
+                }
+
+
+                d.reset();
+                d.clear();
+                d.resize(h, w);
+                d.update(list, size.cursorPos(h - 1, 0));
+                terminal.flush();
+            }
+            log("exit");
+
+        } catch (Exception ex) {
+            log("error " + ex);
+            ex.printStackTrace();;
         } finally {
             exit();
         }
