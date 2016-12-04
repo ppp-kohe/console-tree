@@ -7,6 +7,15 @@ import java.util.List;
 public interface TerminalTree {
 
     List<List<AttributedString>> getColumnTokens(TerminalItem item);
+    /**
+     * returns whether each column is an indent or not.
+     * <p>
+     * columnTokens == getColumnTokens(item) and
+     *   columnTokens.size() == getColumnTokenIndents(item, columnTokens).length */
+    boolean[] getColumnTokenIndents(TerminalItem item, List<List<AttributedString>> columnTokens);
+
+    List<AttributedString> getInfoLines(TerminalItem item);
+
 
     TerminalItem open(TerminalItem item);
     TerminalItem close(TerminalItem item);

@@ -2,13 +2,12 @@ package csl.console.view;
 
 import org.jline.keymap.KeyMap;
 import org.jline.terminal.Size;
+import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedString;
-import org.jline.utils.AttributedStringBuilder;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -17,6 +16,58 @@ import java.util.stream.Collectors;
  *  1) new ConsoleMode().init(app); //separated init call. this can be used for defaultMode
  *  2) new ConsoleMode(app); //immediately calls init within the constructor
  * </pre>
+ *
+ * <p>
+ *
+ *
+ *  Call flow:
+ * <ul>
+ *    <li>{@link ConsoleApplication#initTerminalOnTop()}
+ *        <ul>
+ *            <li>{@link #init(ConsoleApplication)}</li>
+ *        </ul>
+ *    </li>
+ *
+ *    <li>{@link ConsoleApplication#exitTerminalOnTop()}</li>
+ *
+ *    <li>{@link ConsoleApplication#runLoopOnTop()}
+ *        <ul>
+ *            <li>{@link #runLoopFromApp(ConsoleApplication)}
+ *            <ul>
+ *                <li>{@link #runLoopBody(ConsoleApplication)}
+ *                <ul>
+ *                    <li>{@link #display(ConsoleApplication)}
+ *                        <ul>
+ *                            <li>{@link #getLines(ConsoleApplication)}</li>
+ *                            <li>{@link #getCursorRowAndColumn(ConsoleApplication)}</li>
+ *                            <li>{@link ConsoleApplication#displayFromMode(List, int, int)}</li>
+ *                        </ul>
+ *                    </li>
+ *                    <li>{@link #runRootCommand(ConsoleApplication)}
+ *                        <ul>
+ *                            <li>{@link ConsoleCommand#run(ConsoleApplication)}</li>
+ *                        </ul>
+ *                    </li>
+ *                </ul>
+ *                </li>
+ *            </ul>
+ *            </li>
+ *        </ul>
+ *     </li>
+ *
+ *     <li> {@link ConsoleApplication#handleOnTop(Terminal.Signal)}
+ *         <ul>
+ *             <li> {@link #sizeUpdatedFromApp(Size)}</li>
+ *         </ul>
+ *     </li>
+ *
+ *     <li> {@link #end(ConsoleApplication)}
+ *     <ul>
+ *         <li>{@link ConsoleApplication#endFromMode()}</li>
+ *     </ul>
+ *     </li>
+ *
+ * </ul>
  */
 public class ConsoleMode {
     protected KeyMap<ConsoleCommand> commands;
@@ -72,6 +123,7 @@ public class ConsoleMode {
 
     public void display(ConsoleApplication app) {
         List<AttributedString> lines = new ArrayList<>(getLines(app));
+        //getLines -> getCursorRowAndColumn
         int[] cursor = getCursorRowAndColumn(app);
 
         app.displayFromMode(lines, cursor[0], cursor[1]);
@@ -92,7 +144,8 @@ public class ConsoleMode {
         return Collections.emptyList();
     }
 
-    /** {row, column}. called from {@link #display(ConsoleApplication)} */
+    /** {row, column}. called from {@link #display(ConsoleApplication)}
+     *    after {@link #getLines(ConsoleApplication)} */
     public int[] getCursorRowAndColumn(ConsoleApplication app) {
         return new int[] {0, 0};
     }
@@ -105,6 +158,7 @@ public class ConsoleMode {
     public TerminalItem getKeyHelp() {
         return new TerminalItemNode(
             commands.getBoundKeys().values().stream()
+                .distinct()
                 .map(command ->
                     new TerminalItemLine().withColumnTokens(
                             TerminalItemLine.toSingleStringColumnsFromStrings(
@@ -126,16 +180,5 @@ public class ConsoleMode {
                 .map(ConsoleCommand.Key::getName)
                 .reduce("", (p,keyStr) -> p.isEmpty() ? keyStr : p + " " + keyStr);
         return s;
-    }
-
-    public String toKeyName(String keyCode) {
-        StringBuilder buf = new StringBuilder();
-        for (char c : KeyMap.translate(keyCode).toCharArray()) {
-            if (buf.length() > 0) {
-                buf.append(", ");
-            }
-            buf.append(Character.getName(0xFFFF & c));
-        }
-        return buf.toString();
     }
 }

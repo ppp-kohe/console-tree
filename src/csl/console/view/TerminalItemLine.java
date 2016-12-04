@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 public class TerminalItemLine implements TerminalItem {
     protected int depth;
     protected List<List<AttributedString>> columnTokens;
+    protected List<AttributedString> infoLines;
     protected TerminalItem parent;
 
     public TerminalItemLine() {}
@@ -38,17 +39,23 @@ public class TerminalItemLine implements TerminalItem {
         return this;
     }
 
-    /** [a, b, c] -> [[a, b, c] */
+    /** returns this */
+    public TerminalItemLine withInfoLines(List<AttributedString> infoLines) {
+        this.infoLines = infoLines;
+        return this;
+    }
+
+    /** [a, b, c] -> [[a, b, c]] */
     public static List<List<AttributedString>> toSingleColumn(List<AttributedString> strs) {
         return Collections.singletonList(strs);
     }
-    /** [a, b, c] -> [[a, b, c] */
+    /** [a, b, c] -> [[a, b, c]] */
     public static List<List<AttributedString>> toSingleColumnFromStrings(List<String> strs) {
         return toSingleColumn(strs.stream()
                 .map(s -> new AttributedStringBuilder().append(s).toAttributedString())
                 .collect(Collectors.toList()));
     }
-    /** [a, b, c] -> [[a, b, c] */
+    /** [a, b, c] -> [[a, b, c]] */
     public static List<List<AttributedString>> toSingleColumnFromStrings(String... str) {
         return toSingleColumnFromStrings(Arrays.stream(str)
                 .collect(Collectors.toList()));
@@ -71,10 +78,46 @@ public class TerminalItemLine implements TerminalItem {
         return toSingleStringColumnsFromStrings(Arrays.asList(columns));
     }
 
+    /** [line1, line2\nline3, line4] -> [line1, lin2, line3, line4] */
+    public static List<AttributedString> toLines(List<String> srcs) {
+        return srcs.stream()
+                .flatMap(str -> Arrays.stream(str.split("\\n")))
+                .map(l -> new AttributedStringBuilder().append(l).toAttributedString())
+                .collect(Collectors.toList());
+    }
+    /** [line1, line2\nline3, line4] -> [line1, lin2, line3, line4] */
+    public static List<AttributedString> toLines(String... strs) {
+        return toLines(Arrays.asList(strs));
+    }
+
+    /** [col1, col2] -> [col1col2] */
+    public static List<AttributedString> toSingleLine(List<String> srcs) {
+        String line = srcs.stream()
+                .reduce("", (p,n) -> (p + n.replace('\n', ' ')));
+        return Collections.singletonList(new AttributedStringBuilder()
+                .append(line).toAttributedString());
+    }
+
+    /** [col1, col2] -> [col1col2] */
+    public static List<AttributedString> toSingleLine(String... srcs) {
+        return toSingleLine(Arrays.asList(srcs));
+    }
+
     public int getDepth() {
         return depth;
     }
 
+    /**
+     * a subclass can override the method in order to lazily construct the tokens:
+     * <pre>
+     *      if (this.columnTokens == null) {
+     *          this.columnTokens = toSingleStringColumnsFromStrings("col1", "col2");
+     *      }
+     *      return this.columnTokens;
+     * </pre>
+     *  Families of {@link #toSingleColumn(List)} and {@link #toSingleStringColumns(List)}
+     *    are useful for the construction.
+     */
     public List<List<AttributedString>> getColumnTokens() {
         return columnTokens;
     }
@@ -99,5 +142,20 @@ public class TerminalItemLine implements TerminalItem {
 
     public String toStringContents() {
         return "depth=" + getDepth() + ", tokens=" + getColumnTokens();
+    }
+
+    /**
+     * a subclass can override the method in order to lazily construct the lines:
+     * e.g.
+     * <pre>
+     *     if (this.infoLines == null) {
+     *         this.infoLines = toLines("line1", "line2);
+     *     }
+     *     return this.infoLines;
+     * </pre>
+     * Families of {@link #toLines(List)} and {@link #toSingleLine(List)} are useful for the construction.
+     */
+    public List<AttributedString> getInfoLines() {
+        return infoLines;
     }
 }

@@ -7,6 +7,35 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ *  To obtain the instance:
+ * <pre>
+ *     TerminalTreeView view = new TerminalTreeView(root, tree); //root can be null
+ *     view.setHeight(rows);
+ *     view.setWidth(columns);
+ *
+ *     view.setCursorLine(row);
+ *     view.setOffsetX(col);
+ * </pre>
+ *
+ *  To change the root item:
+ * <pre>
+ *     view.setOrigin(newRoot);
+ *     view.build();
+ * </pre>
+ *
+ *  To display the lines:
+ * <pre>
+ *     display.update(view.write().getLines(), size.cursorPos(view.getCursorLine(), 0));
+ * </pre>
+ *
+ *  The class supports scroll operations (scroll...() and move...()).
+ *     Those methods will set {@link #needToUpdateDisplay} to true
+ *        if succeeded their operations and the list of items or its tokens is changed.
+ *         Note: column changes ({@link #scrollToNextColumn()} and {@link #scrollToPreviousColumn()})
+ *                will not change them.
+ *
+ */
 public class TerminalTreeView {
     protected TerminalItem origin;
     protected TerminalTree tree;
@@ -226,18 +255,22 @@ public class TerminalTreeView {
         int i = 0;
         for (DisplayItem item : displayItems) {
             item.updateTokens(tree, getLineHead(item.getItem(), i == cursorLine));
-            updateDisplayMaxWidth(item.getColumnWidth());
+            updateDisplayMaxWidth(item.getColumnWidth(), item.getColumnIndent());
             ++i;
         }
         updateScrollableColumns();
         needToUpdateDisplay = false;
     }
-    protected void updateDisplayMaxWidth(int[] columnWidth) {
+    protected void updateDisplayMaxWidth(int[] columnWidth, boolean[] columnIndent) {
         while (displayColumns.size() < columnWidth.length) {
             displayColumns.add(new DisplayColumn());
         }
         for (int i = 0, l = columnWidth.length; i < l; ++i) {
-            displayColumns.get(i).updateWidth(columnWidth[i]);
+            DisplayColumn column = displayColumns.get(i);
+            column.updateWidth(columnWidth[i]);
+            if (columnIndent != null && i < columnIndent.length) {
+                column.updateIndent(columnIndent[i]);
+            }
         }
     }
     protected void updateScrollableColumns() {
@@ -270,10 +303,16 @@ public class TerminalTreeView {
 
     public static class DisplayColumn {
         public boolean scrollable = true;
+        public Boolean indent = null;
         public int width;
         public void updateWidth(int w) {
             if (w > width) {
                 width = w;
+            }
+        }
+        public void updateIndent(boolean i) {
+            if (indent == null || indent) {
+                indent = i;
             }
         }
 
@@ -285,9 +324,13 @@ public class TerminalTreeView {
             return scrollable;
         }
 
+        public boolean isIndent() {
+            return indent == null ? false : indent;
+        }
+
         @Override
         public String toString() {
-            return "DC(" + width + ", scroll=" + scrollable + ")";
+            return "DC(" + width + ", scroll=" + scrollable + ", indent=" + indent + ")";
         }
     }
 
@@ -321,6 +364,7 @@ public class TerminalTreeView {
         protected List<List<AttributedString>> itemTokens;
         protected List<List<AttributedString>> columnTokens;
         protected int[] columnWidth = null;
+        protected boolean[] columnIndent = null;
 
         public DisplayItem(TerminalItem item) {
             this.item = item;
@@ -346,6 +390,8 @@ public class TerminalTreeView {
                             .mapToInt(AttributedString::columnLength)
                             .sum())
                     .toArray();
+
+            columnIndent = tree.getColumnTokenIndents(item, columnTokens);
         }
 
         public List<List<AttributedString>> getColumnTokens() {
@@ -354,6 +400,10 @@ public class TerminalTreeView {
 
         public int[] getColumnWidth() {
             return columnWidth;
+        }
+
+        public boolean[] getColumnIndent() {
+            return columnIndent;
         }
 
         @Override
@@ -479,24 +529,26 @@ public class TerminalTreeView {
     public void writeLine(TerminalLineColumnsWriting writing, DisplayItem item) {
         boolean scrollable = false; //[fxd],[fxd]...[fxd],[scr,scr...scr],[fxd],[fxd]...[fdx]
         List<List<AttributedString>> columnTokens = item.getColumnTokens();
+
+        DisplayColumn prevColumn = null;
         for (int i = 0, l = columnTokens.size(); i < l; ++i) {
             DisplayColumn column = displayColumns.get(i);
             if (!scrollable) {
                 if (column.isScrollable()) { //start of scrollable
-                    if (i > 0) {
+                    if (prevColumn != null && !prevColumn.isIndent()) {
                         writing.appendSpace(writing.getLineColumnRemaining());
                     }
                     writing.nextColumn(offsetX, displayScrollableWidth);
                     scrollable = true;
                 } else {
-                    if (i > 0) {
+                    if (prevColumn != null && !prevColumn.isIndent()) {
                         writing.appendSpace(writing.getLineColumnRemaining());
                     }
                     writing.nextColumn(0, column.getWidth());
                 }
             } else {
                 if (!column.isScrollable()) { //end of scrollable
-                    if (i > 0) {
+                    if (prevColumn != null && !prevColumn.isIndent()) {
                         writing.appendSpace(writing.getLineColumnRemaining());
                     }
                     writing.nextColumn(0, column.getWidth());
@@ -504,6 +556,7 @@ public class TerminalTreeView {
                 }
             }
             columnTokens.get(i).forEach(writing::append);
+            prevColumn = column;
         }
         writeLineEnd(writing);
     }

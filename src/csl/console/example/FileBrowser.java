@@ -39,7 +39,10 @@ public class FileBrowser {
 
         @Override
         public List<List<AttributedString>> getColumnTokens() {
-            return Collections.singletonList(getTokens());
+            if (columnTokens == null) {
+                columnTokens = Collections.singletonList(getTokens());
+            }
+            return columnTokens;
         }
 
         public List<AttributedString> getTokens() {
@@ -102,6 +105,23 @@ public class FileBrowser {
                 }
             }
             return children;
+        }
+
+        @Override
+        public List<AttributedString> getInfoLines() {
+            ArrayList<String> list = new ArrayList<>();
+            list.add("path:");
+            try {
+                list.add(file.getCanonicalPath() + (file.isDirectory() ? "/" : ""));
+            }catch (Exception ex) {
+                list.add("error " + ex);
+            }
+            if (file.isFile()) {
+                list.add(" size:");
+                list.add(Long.toString(file.length()));
+            }
+
+            return toSingleLine(list);
         }
     }
 }

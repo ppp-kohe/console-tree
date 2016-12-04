@@ -10,7 +10,7 @@ import java.util.*;
  * <p>
  *  There are following options for achieving tree walking
  *  <ol>
- *     <li>overrides {@link TerminalItemNode#getChildren()}</li>
+ *     <li>overrides {@link TerminalItemNode#getChildren()} and returns {@link TerminalItemLine}s </li>
  *
  *     <li>overrides {@link #getParent(TerminalItem)} and {@link #getChildren(TerminalItem)}.
  *             This can support item classes other than {@link TerminalItemLine} and {@link TerminalItemNode}. </li>
@@ -19,7 +19,7 @@ import java.util.*;
  *              {@link #getFirstChild(TerminalItem)}, {@link #getLastChild(TerminalItem)},
  *              {@link #getNextSibling(TerminalItem)} and {@link #getPrevious(TerminalItem)}.
  *              This can avoid supplying a fixed List object as children,
- *                 which needs to eagerly access children of a node. </li>
+ *                 which needs to eagerly access entire children of a node. </li>
  *  </ol>
  */
 public class TerminalTreeBase implements TerminalTree {
@@ -37,6 +37,25 @@ public class TerminalTreeBase implements TerminalTree {
             return getColumnTokensWithIndents(item, Collections.singletonList(Collections.singletonList(
                     new AttributedString(item.toString()))));
         }
+    }
+
+    @Override
+    public boolean[] getColumnTokenIndents(TerminalItem item, List<List<AttributedString>> columnTokens) {
+        if (columnTokens == null) {
+            columnTokens = getColumnTokens(item);
+        }
+        return getColumnTokenIndentsByWhitespaces(columnTokens);
+    }
+
+    public static boolean[] getColumnTokenIndentsByWhitespaces(List<List<AttributedString>> columnTokens) {
+        boolean[] columnIndents = new boolean[columnTokens.size()];
+        for (int i = 0, l = columnIndents.length; i < l; ++i) {
+            columnIndents[i] = columnTokens.get(i).stream()
+                    .mapToInt(c -> c.chars()
+                            .allMatch(Character::isWhitespace) ? 1 : 0)
+                    .sum() > 0;
+        }
+        return columnIndents;
     }
 
     /** inserts indents only if isIndent() is true */
@@ -87,6 +106,17 @@ public class TerminalTreeBase implements TerminalTree {
                 ++dep;
             }
             return dep;
+        }
+    }
+
+    @Override
+    public List<AttributedString> getInfoLines(TerminalItem item) {
+        if (item == null) {
+            return null;
+        } else if (item instanceof TerminalItemLine) {
+            return ((TerminalItemLine) item).getInfoLines();
+        } else {
+            return TerminalItemLine.toLines(item.toString());
         }
     }
 

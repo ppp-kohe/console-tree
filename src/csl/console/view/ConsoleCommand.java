@@ -142,6 +142,42 @@ public interface ConsoleCommand {
             if (Character.isLetterOrDigit(letter)) {
                 return Character.toString(letter);
             } else {
+                switch (letter) {
+                    case '!':
+                    case '"':
+                    case '#':
+                    case '$':
+                    case '%':
+                    case '&':
+                    case '\'':
+                    case '(':
+                    case ')':
+                    case '*':
+                    case '+':
+                    case ',':
+                    case '-':
+                    case '.':
+                    case '/':
+                    case ':':
+                    case ';':
+                    case '<':
+                    case '=':
+                    case '>':
+                    case '?':
+                    case '@':
+                    case '[':
+                    case '\\':
+                    case ']':
+                    case '^':
+                    case '_':
+                    case '`':
+                    case '{':
+                    case '}':
+                    case '|':
+                    case '~':
+                        return Character.toString(letter);
+                }
+
                 return "<" + Character.getName(letter) + ">";
             }
         }

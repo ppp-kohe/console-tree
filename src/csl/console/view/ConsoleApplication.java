@@ -1,7 +1,6 @@
 package csl.console.view;
 
 import org.jline.keymap.BindingReader;
-import org.jline.keymap.KeyMap;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;

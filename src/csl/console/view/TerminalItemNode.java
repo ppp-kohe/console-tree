@@ -4,6 +4,7 @@ import org.jline.utils.AttributedString;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class TerminalItemNode extends TerminalItemLine {
     protected List<TerminalItem> children;
@@ -32,6 +33,12 @@ public class TerminalItemNode extends TerminalItemLine {
         return this;
     }
 
+    @Override
+    public TerminalItemNode withInfoLines(List<AttributedString> infoLines) {
+        super.withInfoLines(infoLines);
+        return this;
+    }
+
     public TerminalItemNode withChildren(List<TerminalItem> children) {
         this.children = children;
         if (children != null) {
@@ -40,6 +47,23 @@ public class TerminalItemNode extends TerminalItemLine {
         return this;
     }
 
+    /**
+     * a subclass can overrides the method for custom child retrieving
+     * e.g.
+     * <pre>
+     *     public List&lt;TerminalItem&gt; getChildren() {
+     *         if (this.children == null) {
+     *             withChildren(...code for constructing a list of children...);
+     *         }
+     *         return this.children;
+     *     }
+     * </pre>
+     *  You can construct the children by {@link #addChild(TerminalItem)}, {@link #addChildren(List)},
+     *     {@link #withChildren(List)}, and {@link #setItemAsChild(TerminalItem)}.
+     *     Those methods eventually calls {@link #setItemAsChild(TerminalItem)},
+     *        which sets the parent of the given child to this node,
+     *        only if the child is a {@link TerminalItemLine}.
+     */
     public List<TerminalItem> getChildren() {
         return children;
     }
@@ -70,6 +94,9 @@ public class TerminalItemNode extends TerminalItemLine {
 
     @Override
     public String toString() {
-        return "Node(" + toStringContents() + ", children=" + getChildren() + ")";
+        return "Node(" + toStringContents() + ", children=" +
+                Optional.ofNullable(getChildren())
+                        .map(List::size)
+                        .orElse(0) + ")";
     }
 }

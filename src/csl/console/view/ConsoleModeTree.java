@@ -7,13 +7,35 @@ import org.jline.utils.InfoCmp;
 
 import java.util.List;
 
+/**
+ *  Using the tree mode as default mode:
+ * <pre>
+ *     ConsoleModeTree.start(new TerminalTreeBase(), appName, rootItem);
+ *      //it starts with a ConsoleApplication.
+ * </pre>
+ *  or
+ *  <pre>
+ *      ConsoleModeTree treeMode = new ConsoleModeTree(new TerminalTreeBase());
+ *
+ *      ConsoleApplication app = new ConsoleApplication(treeMode);
+ *      treeMode.start(app, rootItem);
+ * </pre>
+ *
+ *  Using the tree mode from another mode:
+ *  <pre>
+ *      ConsoleModeTree treeMode = new ConsoleModeTree(app, new TerminalTreeBase());
+ *
+ *      treeMode.setCurrentModeAndRunLoop(app, rootItem);
+ *  </pre>
+ *
+ */
 public class ConsoleModeTree extends ConsoleMode {
     protected TerminalTreeView treeView;
     protected TerminalTree tree;
     protected String name = "";
 
     protected ConsoleModeHelp help;
-
+    protected ConsoleModeMessage message;
 
     public ConsoleModeTree(TerminalTree tree) {
         this.tree = tree;
@@ -65,10 +87,15 @@ public class ConsoleModeTree extends ConsoleMode {
         //TODO search
 
         initHelp(app);
+        initMessage(app);
     }
 
     protected void initHelp(ConsoleApplication app) {
         this.help = new ConsoleModeHelp(app);
+    }
+
+    protected void initMessage(ConsoleApplication app) {
+        this.message = new ConsoleModeMessage(app);
     }
 
     public void setCurrentModeAndRunLoop(ConsoleApplication app, TerminalItem origin) {
@@ -97,6 +124,7 @@ public class ConsoleModeTree extends ConsoleMode {
     protected ConsoleCommand.ConsoleCommandWithName prevSiblingCommand;
     protected ConsoleCommand.ConsoleCommandWithName debugLogCommand;
     protected ConsoleCommand.ConsoleCommandWithName helpCommand;
+    protected ConsoleCommand.ConsoleCommandWithName infoCommand;
 
     @Override
     protected KeyMap<ConsoleCommand> initCommands(ConsoleApplication app) {
@@ -169,6 +197,11 @@ public class ConsoleModeTree extends ConsoleMode {
                 .addKeys('h', 'H')
                 .bind(app, keys);
 
+        infoCommand = ConsoleCommand.command(this::showInfo,
+                "Item infomation", "")
+                .addKeys('i', 'I')
+                .bind(app, keys);
+
         return keys;
     }
 
@@ -190,5 +223,15 @@ public class ConsoleModeTree extends ConsoleMode {
 
     public void showHelp(ConsoleApplication app) {
         help.setCurrentModeAndRunLoop(app, this);
+    }
+
+    public void showInfo(ConsoleApplication app) {
+        TerminalItem item = treeView.getItemOnCursor();
+        List<AttributedString> infos = treeView.getTree().getInfoLines(item);
+        if (infos == null || infos.isEmpty()) {
+            infos = TerminalItemLine.toLines("No info.");
+        }
+        message.setMessageLines(infos);
+        message.setCurrentModeAndRunLoop(app, this);
     }
 }
