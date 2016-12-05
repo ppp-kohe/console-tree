@@ -46,12 +46,12 @@ public class ConsoleApplication {
                     .build();
             prevAttributes = terminal.enterRawMode();
 
-            terminal.puts(InfoCmp.Capability.enter_ca_mode);
-            terminal.puts(InfoCmp.Capability.keypad_xmit);
             prevHandler = terminal.handle(Terminal.Signal.WINCH, this::handleOnTop);
 
             reader = new BindingReader(terminal.reader());
 
+            terminal.puts(InfoCmp.Capability.enter_ca_mode);
+            terminal.puts(InfoCmp.Capability.keypad_xmit);
             terminal.puts(InfoCmp.Capability.clear_screen);
 
             size = terminal.getSize();

@@ -5,6 +5,7 @@ import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.reader.UserInterruptException;
 import org.jline.utils.AttributedString;
+import org.jline.utils.InfoCmp;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -83,7 +84,7 @@ public class ConsoleModeInput extends ConsoleMode {
     public List<AttributedString> getLines(ConsoleApplication app) {
         List<AttributedString> lines = new ArrayList<>(backMode.getLines(app));
 
-        //fill empty the bottom line
+        //fill  the bottom line with empty
         int h = app.getSize().getRows();
         if (lines.size() >= h) {
             lines.set(h - 1, AttributedString.EMPTY);
@@ -95,10 +96,15 @@ public class ConsoleModeInput extends ConsoleMode {
     public void runRootCommand(ConsoleApplication app) {
         try {
             String line = reader.readLine(prompt == null ? "" : prompt);
+
+            //re-enable arrow keys
+            app.getTerminal().puts(InfoCmp.Capability.keypad_xmit);
+
             end(app);
             callBack.apply(line, app);
 
         } catch (UserInterruptException|EndOfFileException iex) {
+            ConsoleLogger.log("input exit: " + iex);
             end(app);
             callBack.apply(null, app);
         }

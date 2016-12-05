@@ -127,9 +127,14 @@ public class ConsoleModeTree extends ConsoleMode {
     protected ConsoleCommand.ConsoleCommandWithName lastChildCommand;
     protected ConsoleCommand.ConsoleCommandWithName nextSiblingCommand;
     protected ConsoleCommand.ConsoleCommandWithName prevSiblingCommand;
+    protected ConsoleCommand.ConsoleCommandWithName searchForwardCommand;
+    protected ConsoleCommand.ConsoleCommandWithName searchBackwardCommand;
+    protected ConsoleCommand.ConsoleCommandWithName nextSearchCommand;
+    protected ConsoleCommand.ConsoleCommandWithName prevSearchCommand;
     protected ConsoleCommand.ConsoleCommandWithName debugLogCommand;
     protected ConsoleCommand.ConsoleCommandWithName helpCommand;
     protected ConsoleCommand.ConsoleCommandWithName infoCommand;
+
 
     @Override
     protected KeyMap<ConsoleCommand> initCommands(ConsoleApplication app) {
@@ -190,8 +195,22 @@ public class ConsoleModeTree extends ConsoleMode {
                 .addKeys('r')
                 .bind(app, keys);
 
-        //TODO search: forward /, backward ?, next n, prev N
-
+        searchForwardCommand = ConsoleCommand.command(this::startSearchForward,
+                "Search forward", "")
+                .addKeys('/')
+                .bind(app, keys);
+        searchBackwardCommand = ConsoleCommand.command(this::startSearchForward,
+                "Search backward", "")
+                .addKeys('?')
+                .bind(app, keys);
+        nextSearchCommand = ConsoleCommand.command(this::moveToNextSearch,
+                "Move to next search", "")
+                .addKeys('n')
+                .bind(app, keys);
+        prevSearchCommand = ConsoleCommand.command(this::moveToPreviousSearch,
+                "Move to previous search", "")
+                .addKeys('N')
+                .bind(app, keys);
 
         debugLogCommand = ConsoleCommand.command(a -> treeView.debugLog(),
                 "Debug log", "")
@@ -239,5 +258,38 @@ public class ConsoleModeTree extends ConsoleMode {
         }
         message.setMessageLines(infos);
         message.setCurrentModeAndRunLoop(app, this);
+    }
+
+    public void startSearchForward(ConsoleApplication app) {
+        search.setCurrentModeAndRunLoop(app, this, "Search-Forward:",
+                (line,app2) -> search(line, app2, true));
+    }
+
+    public void startSearchBackward(ConsoleApplication app) {
+        search.setCurrentModeAndRunLoop(app, this, "Search-Backward:",
+                (line,app2) -> search(line, app2, false));
+    }
+
+    public void search(String line, ConsoleApplication app, boolean forward) {
+        treeView.search(line);
+        moveToSearch(app, forward);
+    }
+
+    public void moveToNextSearch(ConsoleApplication app) {
+        moveToSearch(app, true);
+    }
+
+    public void moveToPreviousSearch(ConsoleApplication app) {
+        moveToSearch(app, false);
+    }
+
+    public void moveToSearch(ConsoleApplication app, boolean forward) {
+        boolean found = forward ?
+                treeView.moveToSearchForward() :
+                treeView.moveToSearchBackward();
+        if (found) {
+            message.setMessageLines(TerminalItemLine.toLines("Not found"));
+            message.setCurrentModeAndRunLoop(app, this);
+        }
     }
 }

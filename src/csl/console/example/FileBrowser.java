@@ -1,14 +1,13 @@
 package csl.console.example;
 
-import csl.console.view.ConsoleModeTree;
-import csl.console.view.TerminalItem;
-import csl.console.view.TerminalItemNode;
-import csl.console.view.TerminalTreeBase;
+import csl.console.view.*;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
 import java.io.File;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -20,9 +19,17 @@ public class FileBrowser {
     }
 
     public void run(File dir) {
-        TerminalTreeBase base = new TerminalTreeBase();
-        FileNode root = new FileNode(dir);
-        ConsoleModeTree.start(base, "File Browser", root);
+        try {
+            TerminalTreeBase base = new TerminalTreeBase();
+            FileNode root = new FileNode(dir);
+            ConsoleModeTree.start(base, "File Browser", root);
+        } catch (Throwable ex) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            ex.printStackTrace(pw);
+            pw.close();
+            ConsoleLogger.log("error: " + sw.toString());
+        }
     }
 
     public static class FileNode extends TerminalItemNode {

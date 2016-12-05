@@ -1,11 +1,15 @@
 package csl.console.view;
 
+import org.jline.utils.AttributedCharSequence;
 import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStyle;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  *  To obtain the instance:
@@ -54,6 +58,9 @@ public class TerminalTreeView {
     protected int offsetY;
 
     protected int cursorLine;
+
+    protected Pattern pattern;
+    protected AttributedStyle patternStyle = AttributedStyle.DEFAULT.inverse();
 
     public TerminalTreeView(TerminalItem origin, TerminalTree tree) {
         this.origin = origin;
@@ -254,24 +261,12 @@ public class TerminalTreeView {
         displayColumns.clear();
         int i = 0;
         for (DisplayItem item : displayItems) {
-            item.updateTokens(tree, getLineHead(item.getItem(), i == cursorLine));
-            updateDisplayMaxWidth(item.getColumnWidth(), item.getColumnIndent());
+            item.updateTokens(tree, getLineHead(item.getItem(), i == cursorLine), displayColumns,
+                    pattern, patternStyle);
             ++i;
         }
         updateScrollableColumns();
         needToUpdateDisplay = false;
-    }
-    protected void updateDisplayMaxWidth(int[] columnWidth, boolean[] columnIndent) {
-        while (displayColumns.size() < columnWidth.length) {
-            displayColumns.add(new DisplayColumn());
-        }
-        for (int i = 0, l = columnWidth.length; i < l; ++i) {
-            DisplayColumn column = displayColumns.get(i);
-            column.updateWidth(columnWidth[i]);
-            if (columnIndent != null && i < columnIndent.length) {
-                column.updateIndent(columnIndent[i]);
-            }
-        }
     }
     protected void updateScrollableColumns() {
         int s = 0;
@@ -299,6 +294,32 @@ public class TerminalTreeView {
                 .mapToInt(DisplayColumn::getWidth)
                 .sum();
         displayFixedWidth = fixedWidth;
+    }
+
+
+    private static List<AttributedString> headCursor = Collections.singletonList(new AttributedString("*"));
+    private static List<AttributedString> headSpace = Collections.singletonList(new AttributedString(" "));
+
+    protected List<AttributedString> getLineHead(TerminalItem item, boolean cursorLine) {
+        return cursorLine ? headCursor : headSpace;
+    }
+
+
+
+    /////////////////////////////////
+
+    protected DisplayItem makeDisplayItem(TerminalItem item) {
+        return new DisplayItem(item);
+    }
+
+    public static class BuildIndex {
+        public int y;
+        public int displayIndex;
+
+        public BuildIndex(int y, int displayIndex) {
+            this.y = y;
+            this.displayIndex = displayIndex;
+        }
     }
 
     public static class DisplayColumn {
@@ -334,37 +355,16 @@ public class TerminalTreeView {
         }
     }
 
-    private static List<AttributedString> headCursor = Collections.singletonList(new AttributedString("*"));
-    private static List<AttributedString> headSpace = Collections.singletonList(new AttributedString(" "));
-
-    protected List<AttributedString> getLineHead(TerminalItem item, boolean cursorLine) {
-        return cursorLine ? headCursor : headSpace;
-    }
-
-
-
-    /////////////////////////////////
-
-    protected DisplayItem makeDisplayItem(TerminalItem item) {
-        return new DisplayItem(item);
-    }
-
-    public static class BuildIndex {
-        public int y;
-        public int displayIndex;
-
-        public BuildIndex(int y, int displayIndex) {
-            this.y = y;
-            this.displayIndex = displayIndex;
-        }
-    }
-
     public static class DisplayItem {
         protected TerminalItem item;
         protected List<List<AttributedString>> itemTokens;
         protected List<List<AttributedString>> columnTokens;
-        protected int[] columnWidth = null;
-        protected boolean[] columnIndent = null;
+        protected int startContent;
+
+        protected Pattern pattern;
+        protected AttributedStyle patternStyle = AttributedStyle.DEFAULT;
+        /** {columnTokensIndex, tokensIndex, attrStrStart, attrStrEndEx} */
+        protected List<int[]> lastMatchedRanges = Collections.emptyList();
 
         public DisplayItem(TerminalItem item) {
             this.item = item;
@@ -374,41 +374,101 @@ public class TerminalTreeView {
             return item;
         }
 
-        public void updateTokens(TerminalTree tree, List<AttributedString> head) {
+        public void updateTokens(TerminalTree tree, List<AttributedString> head, List<DisplayColumn> editingColumns,
+                                 Pattern pattern, AttributedStyle patternStyle) {
+            buildColumnTokens(tree, head);
+            updateColumn(tree, editingColumns);
+            updatePattern(pattern, patternStyle);
+        }
+
+        private void buildColumnTokens(TerminalTree tree, List<AttributedString> head) {
             if (itemTokens == null){
                 itemTokens = tree.getColumnTokens(item);
             }
             List<List<AttributedString>> cs = itemTokens;
             ConsoleLogger.log("cols: " + cs + " head: " + head);
             columnTokens = new ArrayList<>(cs.size() + 1);
+
+            startContent = 0;
             if (head != null) {
                 columnTokens.add(head);
+                startContent = head.size();
             }
             columnTokens.addAll(cs);
-            columnWidth = columnTokens.stream()
-                    .mapToInt(c -> c.stream()
-                            .mapToInt(AttributedString::columnLength)
-                            .sum())
-                    .toArray();
+        }
 
-            columnIndent = tree.getColumnTokenIndents(item, columnTokens);
+        private void updateColumn(TerminalTree tree, List<DisplayColumn> editingColumns) {
+            boolean[] tokenIndents = tree.getColumnTokenIndents(item, itemTokens);
+            for (int i = 0, l = columnTokens.size(); i < l; ++i) {
+                List<AttributedString> c = columnTokens.get(i);
+
+                while (i >= editingColumns.size()) {
+                    editingColumns.add(new DisplayColumn());
+                }
+                DisplayColumn dc = editingColumns.get(i);
+
+                int width = c.stream()
+                        .mapToInt(AttributedCharSequence::columnLength)
+                        .sum();
+                dc.updateWidth(width);
+
+                if (i >= startContent) {
+                    dc.updateIndent(tokenIndents[i - startContent]);
+                }
+            }
+        }
+
+        public void updatePattern(Pattern pattern, AttributedStyle style) {
+            this.pattern = pattern;
+            this.patternStyle = style;
+            updatePatternTokens();
+        }
+        private void updatePatternTokens() {
+            lastMatchedRanges = Collections.emptyList();
+            for (int i = startContent, l = columnTokens.size(); i < l; ++i) {
+                int tokenIndex = i - startContent;
+
+                List<AttributedString> srcTokens = itemTokens.get(tokenIndex);
+                List<AttributedString> tokens = new ArrayList<>(srcTokens.size());
+                for (int t = 0, ts = srcTokens.size() ; t < ts; ++t) {
+                    tokens.add(match(i, t, srcTokens.get(t), pattern, patternStyle));
+                }
+
+                columnTokens.set(i, tokens);
+            }
+            if (!lastMatchedRanges.isEmpty()) {
+                ((ArrayList<int[]>) lastMatchedRanges).trimToSize();
+            }
+        }
+
+        private AttributedString match(int colIdx, int tokenIdx, AttributedString col, Pattern pattern, AttributedStyle style) {
+            if (pattern == null) {
+                return col;
+            }
+            Matcher m = pattern.matcher(col);
+
+            while (m.find()) {
+                int[] range = new int[] {colIdx, tokenIdx, m.start(), m.end()};
+                if (lastMatchedRanges.isEmpty()) {
+                    lastMatchedRanges = new ArrayList<>();
+                }
+                lastMatchedRanges.add(range);
+            }
+            //this will cause same matching again
+            return col.styleMatches(pattern, style);
         }
 
         public List<List<AttributedString>> getColumnTokens() {
             return columnTokens;
         }
 
-        public int[] getColumnWidth() {
-            return columnWidth;
-        }
-
-        public boolean[] getColumnIndent() {
-            return columnIndent;
+        public List<int[]> getLastMatchedRanges() {
+            return lastMatchedRanges;
         }
 
         @Override
         public String toString() {
-            return "DI(" + item + ", colWidth=" + Arrays.toString(columnWidth) + ")";
+            return "DI(" + item + ")";
         }
     }
 
@@ -811,5 +871,132 @@ public class TerminalTreeView {
                     "  " + item.getColumnTokens());
             ++i;
         }
+    }
+
+    ///////////////////////////////
+
+    public void search(String patternStr) {
+        Pattern pattern = null;
+        if (patternStr != null && !patternStr.isEmpty()) {
+            pattern = Pattern.compile(patternStr);
+        }
+        search(pattern);
+    }
+
+    public void search(Pattern pattern) {
+        setPattern(pattern);
+        for (DisplayItem item : getDisplayItemsWithBuild(true)) {
+            item.updatePattern(pattern, patternStyle);
+        }
+    }
+
+    public boolean moveToSearchForward() {
+        if (getPattern() == null) {
+            return false;
+        } else {
+            if (moveToSearchForwardOnDisplay()) {
+                return true;
+            }
+            return moveToSearchForwardNonDisplay();
+        }
+    }
+
+    public boolean moveToSearchForwardOnDisplay() {
+        int n = getCursorLine() + 1;
+        List<DisplayItem> items = getDisplayItemsWithBuild(true);
+        for (int e = items.size(); n < e; ++n) {
+            DisplayItem item = items.get(e);
+            if (!item.getLastMatchedRanges().isEmpty()) {
+                moveCursorTo(item.getItem());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean moveToSearchForwardNonDisplay() {
+        List<DisplayItem> items = getDisplayItemsWithBuild(false);
+        if (!items.isEmpty()) {
+            TerminalItem last = getItemOnCursor();
+            int step = 0;
+            while (last != null && !matchPattern(last)) {
+                if (!tree.isOpen(last)) {
+                    last = open(last, true);
+                }
+                last = tree.getNext(last);
+                ++step;
+            }
+            ConsoleLogger.log("after: " + step + " last: " + last);
+            if (last != null) {
+                moveCursorTo(last);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean moveToSearchBackward() {
+        if (getPattern() == null) {
+            return false;
+        } else {
+            if (moveToSearchBackwardOnDisplay()) {
+                return true;
+            }
+            return moveToSearchBackwardNonDisplay();
+        }
+    }
+
+    public boolean moveToSearchBackwardOnDisplay() {
+        int n = getCursorLine() + 1;
+        List<DisplayItem> items = getDisplayItemsWithBuild(true);
+        for (; n >= 0; --n) {
+            DisplayItem item = items.get(n);
+            if (!item.getLastMatchedRanges().isEmpty()) {
+                moveCursorTo(item.getItem());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean moveToSearchBackwardNonDisplay() {
+        List<DisplayItem> items = getDisplayItemsWithBuild(false);
+        if (!items.isEmpty()) {
+            TerminalItem last = getItemOnCursor();
+            int step = 0;
+            while (last != null && !matchPattern(last)) {
+                last = tree.getPrevious(last);
+                ++step;
+            }
+            ConsoleLogger.log("after: " + step + " last: " + last);
+            if (last != null) {
+                moveCursorTo(last);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean matchPattern(TerminalItem item) {
+        List<List<AttributedString>> itemTokens = tree.getColumnTokens(item);
+        return itemTokens.stream()
+                .flatMap(List::stream)
+                .anyMatch(c -> pattern.matcher(c).find());
+    }
+
+    public void setPattern(Pattern pattern) {
+        this.pattern = pattern;
+    }
+
+    public Pattern getPattern() {
+        return pattern;
+    }
+
+    public void setPatternStyle(AttributedStyle patternStyle) {
+        this.patternStyle = patternStyle;
+    }
+
+    public AttributedStyle getPatternStyle() {
+        return patternStyle;
     }
 }
