@@ -2,8 +2,8 @@
     <info organisation="csl" module="console-tree" revision="1.0-SNAPSHOT"/>
 
     <configurations>
-        <conf name="dist" />
-        <conf name="test" extends="dist" />
+        <conf name="default" />
+        <conf name="test" extends="default" />
     </configurations>
 
     <publications>
@@ -12,6 +12,6 @@
     </publications>
 
     <dependencies>
-        <dependency org="org.jline" name="jline" rev="3.1.0" conf="dist->default"/>
+        <dependency org="org.jline" name="jline" rev="3.1.0" conf="default->default"/>
     </dependencies>
 </ivy-module>

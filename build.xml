@@ -43,7 +43,7 @@
 
     <target name="getlib" depends="getivy">
         <ivy:settings />
-        <ivy:retrieve pattern="lib/[artifact]-[revision].[ext]" conf="dist"/>
+        <ivy:retrieve pattern="lib/[artifact]-[revision].[ext]" conf="default"/>
     </target>
 
     <target name="build" depends="getlib">
