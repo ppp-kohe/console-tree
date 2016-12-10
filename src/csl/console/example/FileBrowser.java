@@ -15,7 +15,7 @@ import java.util.List;
 
 public class FileBrowser {
     public static void main(String[] args) {
-        new FileBrowser().run(new File("."));
+        new FileBrowser().run(new File(args.length == 0 ? "." : args[0]));
     }
 
     public void run(File dir) {

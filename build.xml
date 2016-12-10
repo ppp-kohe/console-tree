@@ -1,7 +1,7 @@
 <project name="console-tree"
          xmlns:ivy="antlib:org.apache.ivy.ant"
          xmlns:unless="ant:unless"
-         default="dist">
+         default="build">
     <property file="build.properties" />
 
     <property name="opt.distdir" location="."/>
