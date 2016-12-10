@@ -43,7 +43,7 @@
 
     <target name="getlib" depends="getivy">
         <ivy:settings />
-        <ivy:retrieve pattern="lib/[artifact]-[revision].[ext]" conf="default"/>
+        <ivy:retrieve pattern="lib/[artifact]-[revision](-[classifier]).[ext]" conf="default"/>
     </target>
 
     <target name="build" depends="getlib">
@@ -78,7 +78,7 @@
         <jar destfile="${opt.distdir}/console-tree.jar"
              basedir="${opt.distdir}/temp">
             <manifest>
-                <attribute name="Main-Class" value="csl.tgls.spin.view.Main"/>
+                <attribute name="Main-Class" value="csl.console.example.FileBrowser"/>
             </manifest>
         </jar>
 
@@ -90,14 +90,20 @@
         <delete dir="publish"/>
     </target>
 
+    <target name="clean-lib">
+        <delete dir="lib"/>
+    </target>
+
     <target name="deploy" depends="getivy,build">
         <mkdir dir="publish"/>
 
         <ivy:settings />
 
         <ivy:resolve />
-        <ivy:deliver deliverpattern="publish/ivy.xml" />
-        <ivy:makepom ivyfile="publish/ivy.xml" pomfile="publish/${ivy.module}.pom"/>
+        <ivy:deliver deliverpattern="publish/${ivy.module}.xml" />
+        <ivy:makepom ivyfile="publish/${ivy.module}.xml" pomfile="publish/${ivy.module}.pom">
+            <mapping conf="default" scope="compile"/>
+        </ivy:makepom>
 
         <jar destfile="publish/${ivy.module}.jar" basedir="bin">
         </jar>
