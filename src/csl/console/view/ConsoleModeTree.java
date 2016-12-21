@@ -56,6 +56,26 @@ public class ConsoleModeTree extends ConsoleMode {
         this.name = name;
     }
 
+    public TerminalTreeView getTreeView() {
+        return treeView;
+    }
+
+    public TerminalTree getTree() {
+        return tree;
+    }
+
+    public ConsoleModeMessage getMessage() {
+        return message;
+    }
+
+    public ConsoleCommand.ConsoleCommandWithName getHelpCommand() {
+        return helpCommand;
+    }
+
+    public ConsoleCommand.ConsoleCommandWithName getSearchBackwardCommand() {
+        return searchBackwardCommand;
+    }
+
     /** main loop with initializing terminal */
     public static ConsoleApplication start(TerminalTree tree, String name, TerminalItem origin) {
         origin = tree.open(origin);

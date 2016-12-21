@@ -22,6 +22,10 @@ public class ConsoleModeHelp extends ConsoleModeTree {
         return "Help";
     }
 
+    public ConsoleMode getBackMode() {
+        return backMode;
+    }
+
     public void setCurrentModeAndRunLoop(ConsoleApplication app, ConsoleMode backMode) {
         this.backMode = backMode;
         setCurrentModeAndRunLoop(app, tree.open(backMode.getKeyHelp()));

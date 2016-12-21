@@ -101,6 +101,14 @@ public class ConsoleMode {
         return "";
     }
 
+    public KeyMap<ConsoleCommand> getCommands() {
+        return commands;
+    }
+
+    public ConsoleCommand.ConsoleCommandWithName getEndCommand() {
+        return endCommand;
+    }
+
     public void runLoopFromApp(ConsoleApplication app) {
         try {
             while (app.getCurrentMode() == this && !checkInterruption()) {

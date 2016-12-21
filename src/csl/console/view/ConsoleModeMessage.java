@@ -60,6 +60,10 @@ public class ConsoleModeMessage extends ConsoleMode {
         return messageLines;
     }
 
+    public ConsoleMode getBackMode() {
+        return backMode;
+    }
+
     public void setCurrentModeAndRunLoop(ConsoleApplication app, ConsoleMode backMode) {
         this.backMode = backMode;
         app.setCurrentMode(this);

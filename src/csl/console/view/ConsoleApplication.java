@@ -126,6 +126,11 @@ public class ConsoleApplication {
         return reader;
     }
 
+    public ConsoleMode getDefaultMode() {
+        return defaultMode;
+    }
+
+
     ///////////////////////
 
     public void endFromMode() {
