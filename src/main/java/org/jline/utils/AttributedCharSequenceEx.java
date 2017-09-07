@@ -1,6 +1,10 @@
 package org.jline.utils;
 
 import org.jline.terminal.Terminal;
+import org.jline.utils.AttributedString;
+import org.jline.utils.AttributedStyle;
+import org.jline.utils.InfoCmp;
+import org.jline.utils.WCWidth;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,7 +12,7 @@ import java.util.List;
 import static org.jline.utils.AttributedStyle.*;
 import static org.jline.utils.AttributedStyle.F_HIDDEN;
 
-public abstract class AttributedCharSequence implements CharSequence {
+public abstract class AttributedCharSequenceEx implements CharSequence {
 
     public String toAnsi() {
         return toAnsi(null);

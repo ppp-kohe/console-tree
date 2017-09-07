@@ -1,6 +1,7 @@
 package csl.console.view;
 
 import org.jline.utils.AttributedCharSequence;
+import org.jline.utils.AttributedCharSequenceEx;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 
@@ -9,7 +10,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  *  To obtain the instance:

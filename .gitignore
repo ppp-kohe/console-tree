@@ -3,3 +3,4 @@ bin/
 **/.idea/workspace.xml
 publish/
 build.properties
+target/
