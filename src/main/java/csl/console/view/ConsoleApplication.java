@@ -156,8 +156,8 @@ public class ConsoleApplication {
             sizeChanged = false;
             display.clear();
         }
-        int r = size.getRows();
-        int c = size.getColumns();
+        int r = Math.max(1, size.getRows());
+        int c = Math.max(1, size.getColumns());
         display.resize(r, c);
         display.update(lines, size.cursorPos(cursorRow, cursorColumn));
         terminal.flush();
