@@ -60,7 +60,7 @@ public class TerminalItemNode extends TerminalItemLine {
      * </pre>
      *  You can construct the children by {@link #addChild(TerminalItem)}, {@link #addChildren(List)},
      *     {@link #withChildren(List)}, and {@link #setItemAsChild(TerminalItem)}.
-     *     Those methods eventually calls {@link #setItemAsChild(TerminalItem)},
+     *     Those methods eventually call {@link #setItemAsChild(TerminalItem)},
      *        which sets the parent of the given child to this node,
      *        only if the child is a {@link TerminalItemLine}.
      */

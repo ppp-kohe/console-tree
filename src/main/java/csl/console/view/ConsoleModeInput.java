@@ -10,6 +10,12 @@ import org.jline.utils.InfoCmp;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * <pre>
+ *     ConsoleModeInput input = new ConsoleModeInput(app);
+ *     input.setCurrentModeAndRunLoop(app, backMode, ">", (line, app) -> { ... });
+ * </pre>
+ */
 public class ConsoleModeInput extends ConsoleMode {
     protected ConsoleMode backMode;
     protected LineReader reader;
@@ -86,7 +92,7 @@ public class ConsoleModeInput extends ConsoleMode {
 
         //fill  the bottom line with empty
         int h = app.getSize().getRows();
-        if (lines.size() >= h) {
+        if (lines.size() >= h && h > 0) {
             lines.set(h - 1, AttributedString.EMPTY);
         }
         return lines;
