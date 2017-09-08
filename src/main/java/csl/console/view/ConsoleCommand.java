@@ -24,6 +24,13 @@ public interface ConsoleCommand {
         return Collections.emptyList();
     }
 
+    /** factory for a method handle:
+     * <pre>
+     *      public class C { public void m(ConsoleApp app) { ... } }
+     *
+     *      ConsoleCommand.command(C::m, "cmd-name", "desc")
+     * </pre>
+     * */
     static ConsoleCommandWithName command(ConsoleCommand c, String name, String desc) {
         return new ConsoleCommandWithName(c, name, desc);
     }

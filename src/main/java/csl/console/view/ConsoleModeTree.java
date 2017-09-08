@@ -104,7 +104,7 @@ public class ConsoleModeTree extends ConsoleMode {
     public void init(ConsoleApplication app) {
         super.init(app);
         treeView = new TerminalTreeView(null, tree);
-        sizeUpdatedFromApp(app.getSize());
+        sizeUpdatedFromApp(app, app.getSize());
 
         initHelp(app);
         initMessage(app);
@@ -251,7 +251,7 @@ public class ConsoleModeTree extends ConsoleMode {
     }
 
     @Override
-    public void sizeUpdatedFromApp(Size size) {
+    public void sizeUpdatedFromApp(ConsoleApplication app, Size size) {
         treeView.setWidth(size.getColumns());
         treeView.setHeight(size.getRows());
     }

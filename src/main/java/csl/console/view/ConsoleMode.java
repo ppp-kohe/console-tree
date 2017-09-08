@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
  *
  *     <li> {@link ConsoleApplication#handleOnTop(Terminal.Signal)}
  *         <ul>
- *             <li> {@link #sizeUpdatedFromApp(Size)}</li>
+ *             <li> {@link #sizeUpdatedFromApp(ConsoleApplication,Size)}</li>
  *         </ul>
  *     </li>
  *
@@ -143,8 +143,17 @@ public class ConsoleMode {
         cmd.run(app);
     }
 
-    /** the method is dispatched under a signal handler thread instead of main */
-    public void sizeUpdatedFromApp(Size size) {
+    /** the method is dispatched under a signal handler thread instead of main:
+     *   you can call {@link #display(ConsoleApplication)}, but you will need to do synchronization.
+     *   This can be override the method:
+     *   <pre>
+     *       public void display(ConsoleApplication app) {
+     *           synchronized (this) {
+     *               super.display(app);
+     *           }
+     *       }
+     *   </pre>*/
+    public void sizeUpdatedFromApp(ConsoleApplication app, Size size) {
     }
 
     /** called from {@link #display(ConsoleApplication)} */

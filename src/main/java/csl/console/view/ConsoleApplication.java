@@ -13,7 +13,20 @@ import java.io.IOException;
 import java.util.List;
 
 /**
+ * You can define your {@link ConsoleMode} class.
  * <pre>
+ *     public class MyMode extends ConsoleMode {
+ *         &#64;Override
+ *         public List&lt;AttributedString&gt; getLines(ConsoleApplication app) {
+ *            ...
+ *         }
+ *         ...
+ *     }
+ * </pre>
+ *
+ * <pre>
+ *   public static void main(String[] args) {
+ *     ConsoleApplication app = new MyMode().makeApp();
  *     app.initTerminalOnTop();
  *     try {
  *         ...//provides specific info. for  defaultMode
@@ -21,6 +34,7 @@ import java.util.List;
  *     } finally {
  *         app.exitTerminalOnTop();
  *     }
+ *   }
  * </pre>
  */
 public class ConsoleApplication {
@@ -110,7 +124,7 @@ public class ConsoleApplication {
         if (signal.equals(Terminal.Signal.WINCH)) {
             size = terminal.getSize();
             sizeChanged = true;
-            currentMode.sizeUpdatedFromApp(size);
+            currentMode.sizeUpdatedFromApp(this, size);
         }
     }
 
