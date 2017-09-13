@@ -169,7 +169,10 @@ public class ConsoleModeTree extends ConsoleMode {
                 .addKeys('e', 'j').addCtrlKey('E').addCtrlKey('N').addKey(InfoCmp.Capability.key_down)
                 .bind(app, keys);
 
-        prevLineCommand = ConsoleCommand.command(a -> treeView.scrollToPreviousLineWithCursor(),
+        prevLineCommand = ConsoleCommand.command(a -> {
+                    treeView.scrollToPreviousLineWithCursor();
+                    app.getDisplay().reset(); //workaround: Display has a bug for clearing the last line
+                },
                 "Previous line", "")
                 .addKeys('y', 'k').addCtrlKey('Y').addCtrlKey('K').addCtrlKey('P').addKey(InfoCmp.Capability.key_up)
                 .bind(app, keys);

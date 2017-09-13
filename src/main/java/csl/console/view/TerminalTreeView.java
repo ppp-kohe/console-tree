@@ -76,6 +76,7 @@ public class TerminalTreeView {
     }
     public void setOrigin(TerminalItem origin) {
         this.origin = origin;
+        needToReBuild = true;
     }
     public TerminalTree getTree() {
         return tree;
