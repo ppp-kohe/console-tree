@@ -95,6 +95,7 @@ public class TerminalTreeView {
         return height;
     }
     public void setHeight(int height) {
+        height--; //workaround: workaround: Display has a bug for clearing the last line
         if (this.height != height) {
             this.height = height;
             needToReBuild = true;

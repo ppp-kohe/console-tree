@@ -3,10 +3,7 @@ package csl.console.view;
 import org.jline.keymap.KeyMap;
 import org.jline.utils.InfoCmp;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public interface ConsoleCommand {
@@ -231,6 +228,7 @@ public interface ConsoleCommand {
 
     class CapabilityKey extends Key {
         protected InfoCmp.Capability key;
+        protected String name;
         public CapabilityKey(InfoCmp.Capability key) {
             this.key = key;
         }
@@ -239,7 +237,12 @@ public interface ConsoleCommand {
         }
         @Override
         public String getName() {
-            return key.getNames()[0];
+            //workaround : Capability::getName cause ArrayStoreException because of using getValue instead of getKey
+            name = InfoCmp.getCapabilitiesByName().entrySet().stream()
+                    .filter(e -> key == e.getValue())
+                    .map(Map.Entry::getKey)
+                    .findFirst().orElse("?");
+            return name;
         }
         @Override
         public String toKey(ConsoleApplication app) {

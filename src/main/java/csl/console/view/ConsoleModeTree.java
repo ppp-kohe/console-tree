@@ -171,7 +171,7 @@ public class ConsoleModeTree extends ConsoleMode {
 
         prevLineCommand = ConsoleCommand.command(a -> {
                     treeView.scrollToPreviousLineWithCursor();
-                    app.getDisplay().reset(); //workaround: Display has a bug for clearing the last line
+                    //app.getDisplay().reset(); //-> coping in TerminalTreeView.height-1 //workaround: Display has a bug for clearing the last line
                 },
                 "Previous line", "")
                 .addKeys('y', 'k').addCtrlKey('Y').addCtrlKey('K').addCtrlKey('P').addKey(InfoCmp.Capability.key_up)
